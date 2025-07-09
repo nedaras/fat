@@ -9,6 +9,11 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const sokol = b.dependency("sokol", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
     const exe_mod = b.createModule(.{
         .root_source_file = b.path("src/main.zig"),
         .target = target,
@@ -21,6 +26,7 @@ pub fn build(b: *std.Build) void {
     });
 
     exe.root_module.addImport("freetype", freetype.module("mach-freetype"));
+    exe.root_module.addImport("sokol", sokol.module("sokol"));
 
     b.installArtifact(exe);
 
