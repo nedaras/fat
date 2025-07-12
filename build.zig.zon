@@ -4,10 +4,6 @@
     .fingerprint = 0x98958143514adcba,
     .minimum_zig_version = "0.14.1",
     .dependencies = .{
-        .mach_freetype = .{
-            .url = "git+https://github.com/hexops/mach-freetype#359e8721d4b988d6297534164e4976a71c46ec43",
-            .hash = "mach_freetype-0.0.0-AAAAALwUAgCt_Mzj28Tk-oZQ_a7BEKZ29rihRi7W70Io",
-        },
         .sokol = .{
             .url = "git+https://github.com/floooh/sokol-zig#251946321ba77c2536bbb409e7f4aa0ea51e5281",
             .hash = "sokol-0.1.0-pb1HK_yULQBF55EJMaQt6_zNksfMvo41FDzMXKaQQEMX",

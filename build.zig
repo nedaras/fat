@@ -4,11 +4,6 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const freetype = b.dependency("mach_freetype", .{
-        .target = target,
-        .optimize = optimize,
-    });
-
     const sokol = b.dependency("sokol", .{
         .target = target,
         .optimize = optimize,
@@ -25,7 +20,12 @@ pub fn build(b: *std.Build) void {
         .root_module = exe_mod,
     });
 
-    exe.root_module.addImport("freetype", freetype.module("mach-freetype"));
+    //exe.addSystemIncludePath(.{ .cwd_relative = "/usr/include/freetype2/" });
+    //exe.addSystemIncludePath(.{ .cwd_relative = "/usr/include/harfbuzz/" });
+
+    exe.linkSystemLibrary("freetype");
+    exe.linkSystemLibrary("harfbuzz");
+
     exe.root_module.addImport("sokol", sokol.module("sokol"));
 
     b.installArtifact(exe);
