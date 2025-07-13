@@ -1,16 +1,12 @@
 const std = @import("std");
 const sokol = @import("sokol");
 const shader = @import("shader.glsl.zig");
+const c = @import("c.zig");
+const Atlas = @import("Atlas.zig");
 const app = sokol.app;
 const gfx = sokol.gfx;
 const glue = sokol.glue;
 const assert = std.debug.assert;
-
-const c = @cImport({
-    @cInclude("freetype/ftadvanc.h");
-    @cInclude("hb.h");
-    @cInclude("hb-ft.h");
-});
 
 var bind = gfx.Bindings{};
 var pipe = gfx.Pipeline{};
@@ -45,12 +41,12 @@ export fn init() void {
     });
 
     bind.images[shader.IMG_tex] = gfx.makeImage(.{
-        .width = 256,
-        .height = 256,
+        .width = @intCast(atlas.size),
+        .height = @intCast(atlas.size),
         .pixel_format = .R8,
-        .data = comptime blk: {
+        .data = blk: {
             var data = gfx.ImageData{};
-            data.subimage[0][0] = gfx.asRange(&@as([256 * 256]u8, @splat(0)));
+            data.subimage[0][0] = gfx.asRange(atlas.data);
             break :blk data;
         },
     });
@@ -74,13 +70,13 @@ export fn frame() void {
     const B = app.heightf();
 
     gfx.updateBuffer(bind.vertex_buffers[0], gfx.asRange(&[_]f32{
-        0.0, 100.0,  0.5, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,
-        100.0,  100.0,  0.5, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0,
-        0.0, 0.0, 0.5, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+        0.0, 256.0,  0.5, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0,
+        256.0,  256.0,  0.5, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0,
+        0.0, 0.0, 0.5, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
 
-        100.0,  100.0,  0.5, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0,
-        100.0,  0.0, 0.5, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0,
-        0.0, 0.0, 0.5, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0,
+        256.0,  256.0,  0.5, 0.0, 1.0, 0.0, 1.0, 1.0, 1.0,
+        256.0,  0.0, 0.5, 1.0, 1.0, 0.0, 1.0, 1.0, 0.0,
+        0.0, 0.0, 0.5, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
     }));
 
     gfx.applyPipeline(pipe);
@@ -104,6 +100,8 @@ export fn event(e: ?*const app.Event) void {
 var face: c.FT_Face = undefined;
 var hb_font: *c.hb_font_t = undefined;
 
+var atlas: Atlas = undefined;
+
 pub fn main() !void {
     var lib: c.FT_Library = undefined;
 
@@ -113,10 +111,32 @@ pub fn main() !void {
     assert(c.FT_New_Face(lib, "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf", 0, &face) == 0);
     defer assert(c.FT_Done_Face(face) == 0);
 
-    assert(c.FT_Set_Char_Size(face, 0, 64, 0, 0) == 0);
+    assert(c.FT_Set_Char_Size(face, 0, 32 * 64, 0, 0) == 0);
 
-    hb_font = c.hb_ft_font_create(face, null).?;
-    defer c.hb_font_destroy(hb_font);
+    //hb_font = c.hb_ft_font_create(face, null).?;
+    //defer c.hb_font_destroy(hb_font);
+
+    atlas = try Atlas.init(std.heap.page_allocator, 512);
+    defer atlas.deinit();
+
+    for (32..127) |i| {
+        const idx = c.FT_Get_Char_Index(face, @intCast(i));
+        if (idx == 0) continue;
+
+        assert(c.FT_Load_Glyph(face, idx, c.FT_LOAD_RENDER) == 0);
+
+        const width = face.*.glyph.*.bitmap.width;
+        const height = face.*.glyph.*.bitmap.rows;
+
+        const region = try atlas.reserve(width + 2, height + 2);
+
+        for (0..height) |y| {
+            const src = face.*.glyph.*.bitmap.buffer[y * width .. y * width + width];
+            const dst = atlas.data[(region.y + y + 1) * atlas.size + region.x + 1 .. (region.y + y + 1) * atlas.size + region.x + 1 + width];
+
+            @memcpy(dst, src);
+        }
+    }
 
     //const buffer = c.hb_buffer_create();
     //defer c.hb_buffer_destroy(buffer);
@@ -133,16 +153,30 @@ pub fn main() !void {
     //std.debug.print("gid {d}, advance {d}\n", .{info[i].codepoint, pos[i].x_advance});
     //}
 
-    app.run(.{
-        .init_cb = init,
-        .frame_cb = frame,
-        .cleanup_cb = cleanup,
-        .event_cb = event,
-        .width = 640,
-        .height = 480,
-        .icon = .{ .sokol_default = true },
-        .window_title = "fat",
-        .logger = .{ .func = sokol.log.func },
-        .win32_console_attach = true,
-    });
+
+    const out = try std.fs.cwd().createFile("out.ppm", .{});
+    defer out.close();
+
+    try atlas.dump(out.writer());
+
+    //_ = try atlas.reserve(80, 64);
+    //_ = try atlas.reserve(356, 100);
+    //_ = try atlas.reserve(100, 32);
+    //_ = try atlas.reserve(76, 100);
+    //_ = try atlas.reserve(100, 32);
+
+    //_ = try atlas.reserve(64, 64);
+    //_ = try atlas.reserve(448, 128);
+    //_ = try atlas.reserve(64, 64);
+
+    var curr = atlas.nodes.first;
+    while (curr) |node| {
+        defer curr = node.next;
+
+        std.debug.print("node: {} {} {}\n", .{node.data.x, node.data.y, node.data.width});
+    }
+
+
+    //_ = try atlas.reserve(64, 64);
+    //_ = try atlas.reserve(64, 64);
 }

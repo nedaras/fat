@@ -29,8 +29,8 @@ in vec2 uv;
 out vec4 frag_color;
 
 void main() {
-  float a = texture(sampler2D(tex, smp), uv).r;
-  frag_color = color * a;
+  float r = texture(sampler2D(tex, smp), uv).r;
+  frag_color = color * vec4(r, r, r, 1.0);
 }
 @end
 
