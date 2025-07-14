@@ -95,6 +95,7 @@ pub const IDWriteFactory = extern struct {
     }
 
     pub const CreateFontFileReferenceError = error{
+        FontNotFound,
         OutOfMemory,
         Unexpected,
     };
@@ -114,6 +115,7 @@ pub const IDWriteFactory = extern struct {
         return switch (hr) {
             windows.S_OK => fontFile,
             windows.E_OUTOFMEMORY => return error.OutOfMemory,
+            -2003283965 => return error.FontNotFound,
             windows.E_POINTER => unreachable,
             else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
         };

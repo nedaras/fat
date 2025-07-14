@@ -30,7 +30,10 @@ const DWriteImpl = struct {
     dwrite_face: *windows.IDWriteFontFace,
 
     pub fn openFace(library: Library, path: [:0]const u8) !DWriteImpl {
-        const font_file = try library.impl.dwrite_factory.CreateFontFileReference(path, null);
+        const font_file = library.impl.dwrite_factory.CreateFontFileReference(path, null) catch |err| return switch (err) {
+            error.FontNotFound => error.FailedToOpen,
+            else => |e| e,
+        };
         defer font_file.Release();
         
         const std = @import("std");

@@ -10,7 +10,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const lib = b.addSharedLibrary(.{
+    const lib = b.addStaticLibrary(.{
         .name = "fat",
         .root_module = lib_mod,
     });
@@ -18,7 +18,9 @@ pub fn build(b: *std.Build) void {
     lib.linkLibC();
     lib.installHeader(b.path("include/fat.h"), "fat.h");
 
-    if (target.result.os.tag != .windows) {
+    if (target.result.os.tag == .windows) {
+        lib.linkSystemLibrary("dwrite");
+    } else {
         lib.linkSystemLibrary("freetype");
         lib.addSystemIncludePath(.{ .cwd_relative = "/usr/include/freetype2" });
     }
@@ -35,7 +37,9 @@ pub fn build(b: *std.Build) void {
         .root_module = exe_mod,
     });
 
+    exe.linkLibC();
     exe.linkLibrary(lib);
+
     exe.addCSourceFile(.{ .file = b.path("main.c") });
 
     b.installArtifact(exe);
