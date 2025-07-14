@@ -22,7 +22,7 @@ pub fn build(b: *std.Build) void {
         lib.linkSystemLibrary("dwrite");
     } else {
         lib.linkSystemLibrary("freetype");
-        lib.addSystemIncludePath(.{ .cwd_relative = "/usr/include/freetype2" });
+        lib.linkSystemLibrary("harfbuzz"); // need this on windows too mb just build as shared lib from source
     }
 
     b.installArtifact(lib);

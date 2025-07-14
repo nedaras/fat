@@ -112,7 +112,6 @@ pub const IDWriteFactory = extern struct {
         var fontFile: *IDWriteFontFile = undefined;
 
         const hr = create_font_file_refrence(self, filePath.ptr, lastWriteTime, &fontFile);
-        std.debug.print("hresult: {}\n", .{hr});
         return switch (hr) {
             windows.S_OK => fontFile,
             -2003283965 => error.FontNotFound,

@@ -42,8 +42,6 @@ const DWriteImpl = struct {
             else => |e| e,
         };
         defer font_file.Release();
-        
-        std.debug.print("aaaaaaa\n", .{});
 
         var file_type: windows.DWRITE_FONT_FILE_TYPE = undefined;
         var face_type: windows.DWRITE_FONT_FACE_TYPE = undefined;
@@ -51,8 +49,6 @@ const DWriteImpl = struct {
         var faces: u32 = undefined;
 
         try font_file.Analyze(&file_type, &face_type, &faces);
-
-        std.debug.print("debug: file_type: {}, face_type: {}, faces_n: {}\n", .{file_type, face_type, faces});
          
         return .{
             .dwrite_face = try library.impl.dwrite_factory.CreateFontFace(face_type, &.{font_file}, 0, .DWRITE_FONT_SIMULATIONS_NONE),
