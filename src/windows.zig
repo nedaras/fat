@@ -96,16 +96,17 @@ pub const IDWriteFactory = extern struct {
 
     pub const CreateFontFileReferenceError = error{
         FontNotFound,
+        AccessDenied,
         OutOfMemory,
         Unexpected,
     };
 
     pub fn CreateFontFileReference(
         self: *IDWriteFactory,
-        filePath: [:0]const u8,
+        filePath: [:0]const u16,
         lastWriteTime: ?*const FILETIME,
     ) CreateFontFileReferenceError!*IDWriteFontFile {
-        const FnType = fn (*IDWriteFactory, [*:0]const u8, ?*const FILETIME, **IDWriteFontFile) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteFactory, [*:0]const u16, ?*const FILETIME, **IDWriteFontFile) callconv(WINAPI) HRESULT;
         const create_font_file_refrence: *const FnType = @ptrCast(self.vtable[7]);
 
         var fontFile: *IDWriteFontFile = undefined;
@@ -114,8 +115,9 @@ pub const IDWriteFactory = extern struct {
         std.debug.print("hresult: {}\n", .{hr});
         return switch (hr) {
             windows.S_OK => fontFile,
-            windows.E_OUTOFMEMORY => return error.OutOfMemory,
-            -2003283965 => return error.FontNotFound,
+            -2003283965 => error.FontNotFound,
+            windows.E_ACCESSDENIED => error.AccessDenied,
+            windows.E_OUTOFMEMORY => error.OutOfMemory,
             windows.E_POINTER => unreachable,
             else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
         };

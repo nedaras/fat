@@ -8,10 +8,16 @@ const fat_error_e = enum(c_int) {
     ok = 0,
     failed_to_open,
     not_supported,
+    invalid_wtf_8,
     invalid_pointer,
     out_of_memory,
     unexpected,
 };
+
+export fn fat_error_name(err: c_int) [*:0]const u8 {
+    const err_e = std.meta.intToEnum(fat_error_e, err) catch .unexpected;
+    return @tagName(err_e).ptr;
+}
 
 export fn fat_init_library(clibrary: ?**Library) callconv(.C) fat_error_e {
     const out = clibrary orelse return fat_error_e.invalid_pointer;
@@ -37,17 +43,18 @@ export fn fat_library_done(clibrary: ?*Library) callconv(.C) fat_error_e {
     return fat_error_e.ok;
 }
 
-export fn fat_open_face(clibrary: ?*Library, cface: ?**Face, path: [*:0]const u8) callconv(.C) fat_error_e {
+export fn fat_open_face(clibrary: ?*Library, cface: ?**Face, sub_path: [*:0]const u8) callconv(.C) fat_error_e {
     const lib = clibrary orelse return fat_error_e.invalid_pointer;
     const out = cface orelse return fat_error_e.invalid_pointer;
 
     const face = c_allocator.create(Face) catch return fat_error_e.out_of_memory;
 
-    face.* = lib.openFace(mem.span(path)) catch |err| {
+    face.* = lib.openFace(mem.span(sub_path)) catch |err| {
         c_allocator.destroy(face);
         return switch (err) {
             error.FailedToOpen => fat_error_e.failed_to_open,
             error.NotSupported => fat_error_e.not_supported,
+            error.InvalidWtf8 => fat_error_e.invalid_wtf_8,
             error.OutOfMemory => fat_error_e.out_of_memory,
             error.Unexpected => fat_error_e.unexpected,
         };

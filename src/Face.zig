@@ -1,3 +1,4 @@
+const std = @import("std");
 const builtin = @import("builtin");
 const Library = @import("Library.zig");
 const freetype = @import("freetype.zig");
@@ -8,13 +9,14 @@ impl: Impl,
 pub const OpenFaceError = error{
     FailedToOpen,
     NotSupported,
+    InvalidWtf8,
     OutOfMemory,
     Unexpected,
 };
 
-pub fn openFace(library: Library, path: [:0]const u8) OpenFaceError!Face {
+pub fn openFace(library: Library, sub_path: [:0]const u8) OpenFaceError!Face {
     return .{
-        .impl = try Impl.openFace(library, path),
+        .impl = try Impl.openFace(library, sub_path),
     };
 }
 
@@ -29,14 +31,18 @@ pub const Impl = if (builtin.os.tag == .windows) DWriteImpl else FreetypeImpl;
 const DWriteImpl = struct {
     dwrite_face: *windows.IDWriteFontFace,
 
-    pub fn openFace(library: Library, path: [:0]const u8) !DWriteImpl {
-        const font_file = library.impl.dwrite_factory.CreateFontFileReference(path, null) catch |err| return switch (err) {
-            error.FontNotFound => error.FailedToOpen,
+    pub fn openFace(library: Library, sub_path: [:0]const u8) !DWriteImpl {
+        var tmp_path: windows.PathSpace = undefined;
+        tmp_path.len = try std.unicode.wtf8ToWtf16Le(&tmp_path.data, sub_path);
+        tmp_path.data[tmp_path.len] = 0;
+
+        const font_file = library.impl.dwrite_factory.CreateFontFileReference(tmp_path.span(), null) catch |err| return switch (err) {
+            error.FontNotFound,
+            error.AccessDenied => error.FailedToOpen,
             else => |e| e,
         };
         defer font_file.Release();
         
-        const std = @import("std");
         std.debug.print("aaaaaaa\n", .{});
 
         var file_type: windows.DWRITE_FONT_FILE_TYPE = undefined;
@@ -61,9 +67,9 @@ const DWriteImpl = struct {
 const FreetypeImpl = struct {
     ft_face: freetype.FT_Face,
 
-    pub fn openFace(library: Library, path: [:0]const u8) !FreetypeImpl {
+    pub fn openFace(library: Library, sub_path: [:0]const u8) !FreetypeImpl {
         var ft_face: freetype.FT_Face = undefined;
-        try freetype.FT_New_Face(library.impl.ft_library, path, 0, &ft_face);
+        try freetype.FT_New_Face(library.impl.ft_library, sub_path, 0, &ft_face);
 
         return .{
             .ft_face = ft_face,

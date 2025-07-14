@@ -6,13 +6,17 @@ int main() {
   library_t* lib;
   face_t* face;
 
-  if (fat_init_library(&lib) != fat_error_ok) {
-    printf("fat_init_library failed\n");
+  fat_error_e err;
+
+  err = fat_init_library(&lib);
+  if (err != fat_error_ok) {
+    printf("fat_init_library failed: %s\n", fat_error_name(err));
     return 1;
   }
 
-  if (fat_open_face(lib, &face, "") != fat_error_ok) {
-    printf("fat_open_face failed\n");
+  err = fat_open_face(lib, &face, "");
+  if (err != fat_error_ok) {
+    printf("fat_open_face failed: %s\n", fat_error_name(err));
     assert(fat_library_done(lib) == fat_error_ok);
     return 1;
   }
