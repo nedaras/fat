@@ -18,6 +18,7 @@ pub fn build(b: *std.Build) void {
     lib.linkLibC();
     lib.installHeader(b.path("include/fat.h"), "fat.h");
 
+    // todo: compile them from source
     if (target.result.os.tag == .windows) {
         lib.linkSystemLibrary("dwrite");
     } else {
