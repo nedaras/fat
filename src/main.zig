@@ -13,6 +13,11 @@ var pipe = gfx.Pipeline{};
 
 var pass_action: gfx.PassAction = .{};
 
+var face: c.FT_Face = undefined;
+var hb_font: *c.hb_font_t = undefined;
+
+var atlas: Atlas = undefined;
+
 export fn init() void {
     gfx.setup(.{
         .environment = glue.environment(),
@@ -97,11 +102,6 @@ export fn event(e: ?*const app.Event) void {
     _ = e;
 }
 
-var face: c.FT_Face = undefined;
-var hb_font: *c.hb_font_t = undefined;
-
-var atlas: Atlas = undefined;
-
 pub fn main() !void {
     var lib: c.FT_Library = undefined;
 
@@ -111,7 +111,7 @@ pub fn main() !void {
     assert(c.FT_New_Face(lib, "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf", 0, &face) == 0);
     defer assert(c.FT_Done_Face(face) == 0);
 
-    assert(c.FT_Set_Char_Size(face, 0, 32 * 64, 0, 0) == 0);
+    assert(c.FT_Set_Char_Size(face, 0, 16 * 64, 0, 0) == 0);
 
     //hb_font = c.hb_ft_font_create(face, null).?;
     //defer c.hb_font_destroy(hb_font);
@@ -119,24 +119,27 @@ pub fn main() !void {
     atlas = try Atlas.init(std.heap.page_allocator, 512);
     defer atlas.deinit();
 
-    for (32..127) |i| {
-        const idx = c.FT_Get_Char_Index(face, @intCast(i));
-        if (idx == 0) continue;
+    //var char_idx: c_uint = undefined;
+    //var char = c.FT_Get_First_Char(face, &char_idx);
 
-        assert(c.FT_Load_Glyph(face, idx, c.FT_LOAD_RENDER) == 0);
+    //while (char_idx != 0) : (char = c.FT_Get_Next_Char(face, char, &char_idx)) {
+        //const idx = c.FT_Get_Char_Index(face, char);
+        //if (idx == 0) continue;
 
-        const width = face.*.glyph.*.bitmap.width;
-        const height = face.*.glyph.*.bitmap.rows;
+        //assert(c.FT_Load_Glyph(face, char_idx, c.FT_LOAD_RENDER) == 0);
 
-        const region = try atlas.reserve(width + 2, height + 2);
+        //const width = face.*.glyph.*.bitmap.width;
+        //const height = face.*.glyph.*.bitmap.rows;
 
-        for (0..height) |y| {
-            const src = face.*.glyph.*.bitmap.buffer[y * width .. y * width + width];
-            const dst = atlas.data[(region.y + y + 1) * atlas.size + region.x + 1 .. (region.y + y + 1) * atlas.size + region.x + 1 + width];
+        //const region = try atlas.reserve(width + 2, height + 2);
 
-            @memcpy(dst, src);
-        }
-    }
+        //for (0..height) |y| {
+            //const src = face.*.glyph.*.bitmap.buffer[y * width .. y * width + width];
+            //const dst = atlas.data[(region.y + y + 1) * atlas.size + region.x + 1 .. (region.y + y + 1) * atlas.size + region.x + 1 + width];
+
+            //@memcpy(dst, src);
+        //}
+    //}
 
     //const buffer = c.hb_buffer_create();
     //defer c.hb_buffer_destroy(buffer);
@@ -154,10 +157,10 @@ pub fn main() !void {
     //}
 
 
-    const out = try std.fs.cwd().createFile("out.ppm", .{});
-    defer out.close();
+    //cconst out = try std.fs.cwd().createFile("out.ppm", .{});
+    //defer out.close();
 
-    try atlas.dump(out.writer());
+    //try atlas.dump(out.writer());
 
     //_ = try atlas.reserve(80, 64);
     //_ = try atlas.reserve(356, 100);
@@ -169,14 +172,25 @@ pub fn main() !void {
     //_ = try atlas.reserve(448, 128);
     //_ = try atlas.reserve(64, 64);
 
-    var curr = atlas.nodes.first;
-    while (curr) |node| {
-        defer curr = node.next;
+    //var curr = atlas.nodes.first;
+    //while (curr) |node| {
+        //defer curr = node.next;
 
-        std.debug.print("node: {} {} {}\n", .{node.data.x, node.data.y, node.data.width});
-    }
-
+        //std.debug.print("node: {} {} {}\n", .{node.data.x, node.data.y, node.data.width});
+    //}
 
     //_ = try atlas.reserve(64, 64);
     //_ = try atlas.reserve(64, 64);
+    app.run(.{
+        .init_cb = init,
+        .frame_cb = frame,
+        .cleanup_cb = cleanup,
+        .event_cb = event,
+        .width = 640,
+        .height = 480,
+        .icon = .{ .sokol_default = true },
+        .window_title = "fat",
+        .logger = .{ .func = sokol.log.func },
+        .win32_console_attach = true,
+    });
 }
