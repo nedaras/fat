@@ -1,16 +1,20 @@
 const std = @import("std");
 const Library = @import("Library.zig");
+const Face = @import("Face.zig");
+const mem = std.mem;
 const c_allocator = std.heap.c_allocator;
 
 const fat_error_e = enum(c_int) {
     ok = 0,
+    failed_to_open,
+    not_supported,
     invalid_pointer,
     out_of_memory,
     unexpected,
 };
 
 export fn fat_init_library(clibrary: ?**Library) callconv(.C) fat_error_e {
-    const clib = clibrary orelse return fat_error_e.invalid_pointer;
+    const out = clibrary orelse return fat_error_e.invalid_pointer;
     const lib = c_allocator.create(Library) catch return fat_error_e.out_of_memory;
 
     lib.* = Library.init() catch |err| {
@@ -21,14 +25,42 @@ export fn fat_init_library(clibrary: ?**Library) callconv(.C) fat_error_e {
         };
     };
 
-    clib.* = lib;
+    out.* = lib;
     return fat_error_e.ok;
 }
 
 export fn fat_library_done(clibrary: ?*Library) callconv(.C) fat_error_e {
-    const clib = clibrary orelse return fat_error_e.invalid_pointer;
-    clib.deinit();
+    const lib = clibrary orelse return fat_error_e.invalid_pointer;
+    lib.deinit();
 
-    c_allocator.destroy(clib);
+    c_allocator.destroy(lib);
+    return fat_error_e.ok;
+}
+
+export fn fat_open_face(clibrary: ?*Library, cface: ?**Face, path: [*:0]const u8) callconv(.C) fat_error_e {
+    const lib = clibrary orelse return fat_error_e.invalid_pointer;
+    const out = cface orelse return fat_error_e.invalid_pointer;
+
+    const face = c_allocator.create(Face) catch return fat_error_e.out_of_memory;
+
+    face.* = lib.openFace(mem.span(path)) catch |err| {
+        c_allocator.destroy(face);
+        return switch (err) {
+            error.FailedToOpen => fat_error_e.failed_to_open,
+            error.NotSupported => fat_error_e.not_supported,
+            error.OutOfMemory => fat_error_e.out_of_memory,
+            error.Unexpected => fat_error_e.unexpected,
+        };
+    };
+
+    out.* = face;
+    return fat_error_e.ok;
+}
+
+export fn fat_face_done(cface: ?*Face) callconv(.C) fat_error_e {
+    const face = cface orelse return fat_error_e.invalid_pointer;
+    face.close();
+
+    c_allocator.destroy(face);
     return fat_error_e.ok;
 }

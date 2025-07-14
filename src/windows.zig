@@ -2,17 +2,48 @@ const std = @import("std");
 const dwrite = @import("windows/dwrite.zig");
 const windows = std.os.windows;
 
+const UINT32 = u32;
 const INT = windows.INT;
+const BOOL = windows.BOOL;
 const GUID = windows.GUID;
 const ULONG = windows.ULONG;
 const WINAPI = windows.WINAPI;
 const HRESULT = windows.HRESULT;
+const FILETIME = windows.FILETIME;
 
 pub const REFIID = *const GUID;
 
 pub const DWRITE_FACTORY_TYPE = enum(INT) {
     DWRITE_FACTORY_TYPE_SHARED,
     DWRITE_FACTORY_TYPE_ISOLATED,
+};
+
+pub const DWRITE_FONT_FILE_TYPE = enum(INT) {
+    DWRITE_FONT_FILE_TYPE_UNKNOWN,
+    DWRITE_FONT_FILE_TYPE_CFF,
+    DWRITE_FONT_FILE_TYPE_TRUETYPE,
+    DWRITE_FONT_FILE_TYPE_OPENTYPE_COLLECTION,
+    DWRITE_FONT_FILE_TYPE_TYPE1_PFM,
+    DWRITE_FONT_FILE_TYPE_TYPE1_PFB,
+    DWRITE_FONT_FILE_TYPE_VECTOR,
+    DWRITE_FONT_FILE_TYPE_BITMAP,
+};
+
+pub const DWRITE_FONT_FACE_TYPE = enum(INT) {
+    DWRITE_FONT_FACE_TYPE_CFF,
+    DWRITE_FONT_FACE_TYPE_TRUETYPE,
+    DWRITE_FONT_FACE_TYPE_OPENTYPE_COLLECTION,
+    DWRITE_FONT_FACE_TYPE_TYPE1,
+    DWRITE_FONT_FACE_TYPE_VECTOR,
+    DWRITE_FONT_FACE_TYPE_BITMAP,
+    DWRITE_FONT_FACE_TYPE_UNKNOWN,
+    DWRITE_FONT_FACE_TYPE_RAW_CFF,
+};
+
+pub const DWRITE_FONT_SIMULATIONS = enum(INT) {
+    DWRITE_FONT_SIMULATIONS_NONE    = 0x0000,
+    DWRITE_FONT_SIMULATIONS_BOLD    = 0x0001,
+    DWRITE_FONT_SIMULATIONS_OBLIQUE = 0x0002
 };
 
 pub usingnamespace windows;
@@ -60,6 +91,96 @@ pub const IDWriteFactory = extern struct {
     pub const UUID = &GUID.parse("{b859ee5a-d838-4b5b-a2e8-1adc7d93db48}");
 
     pub inline fn Release(self: *IDWriteFactory) void {
+        IUnknown.Release(@ptrCast(self));
+    }
+
+    pub const CreateFontFileReferenceError = error{
+        OutOfMemory,
+        Unexpected,
+    };
+
+    pub fn CreateFontFileReference(
+        self: *IDWriteFactory,
+        filePath: [:0]const u8,
+        lastWriteTime: ?*const FILETIME,
+    ) CreateFontFileReferenceError!*IDWriteFontFile {
+        const FnType = fn (*IDWriteFactory, [*:0]const u8, ?*const FILETIME, **IDWriteFontFile) callconv(WINAPI) HRESULT;
+        const create_font_file_refrence: *const FnType = @ptrCast(self.vtable[7]);
+
+        var fontFile: *IDWriteFontFile = undefined;
+
+        const hr = create_font_file_refrence(self, filePath.ptr, lastWriteTime, &fontFile);
+        return switch (hr) {
+            windows.S_OK => fontFile,
+            windows.E_OUTOFMEMORY => return error.OutOfMemory,
+            windows.E_POINTER => unreachable,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
+
+    pub const CreateFontFaceError = error{
+        OutOfMemory,
+        Unexpected,
+    };
+
+    pub fn CreateFontFace(
+        self: *IDWriteFactory,
+        fontFaceType: DWRITE_FONT_FACE_TYPE,
+        fontFiles: []const *IDWriteFontFile,
+        faceIndex: UINT32,
+        fontFaceSimulationFlags: DWRITE_FONT_SIMULATIONS,
+    ) CreateFontFaceError!*IDWriteFontFace {
+        const FnType = fn (*IDWriteFactory, DWRITE_FONT_FACE_TYPE, UINT32, [*]const *IDWriteFontFile, UINT32, DWRITE_FONT_SIMULATIONS, **IDWriteFontFace) callconv(WINAPI) HRESULT;
+        const create_font_face: *const FnType = @ptrCast(self.vtable[9]);
+
+        var fontFace: *IDWriteFontFace = undefined;
+
+        const hr = create_font_face(self, fontFaceType, @intCast(fontFiles.len), fontFiles.ptr, faceIndex, fontFaceSimulationFlags, &fontFace);
+        return switch (hr) {
+            windows.S_OK => fontFace,
+            windows.E_OUTOFMEMORY => return error.OutOfMemory,
+            windows.E_POINTER => unreachable,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
+};
+
+pub const IDWriteFontFile = extern struct {
+    vtable: [*]const *const anyopaque,
+
+    pub inline fn Release(self: *IDWriteFontFile) void {
+        IUnknown.Release(@ptrCast(self));
+    }
+
+    pub const AnalyzeError = error{
+        NotSupported,
+        Unexpected,
+    };
+
+    pub fn Analyze(
+        self: *IDWriteFontFile,
+        fontFileType: *DWRITE_FONT_FILE_TYPE,
+        fontFaceType: ?*DWRITE_FONT_FACE_TYPE,
+        numberOfFaces: *UINT32,
+    ) AnalyzeError!void {
+        const FnType = fn (*IDWriteFontFile, *BOOL, *DWRITE_FONT_FILE_TYPE, ?*DWRITE_FONT_FACE_TYPE, *UINT32) callconv(WINAPI) HRESULT;
+        const analyze: *const FnType = @ptrCast(self.vtable[5]);
+
+        var isSupportedFontType: BOOL = undefined;
+
+        const hr = analyze(self, &isSupportedFontType, fontFileType, fontFaceType, numberOfFaces);
+        return switch (hr) {
+            windows.S_OK => if (isSupportedFontType == windows.TRUE) {} else error.NotSupported,
+            windows.E_POINTER => unreachable,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
+};
+
+pub const IDWriteFontFace = extern struct {
+    vtable: [*]const *const anyopaque,
+
+    pub inline fn Release(self: *IDWriteFontFace) void {
         IUnknown.Release(@ptrCast(self));
     }
 };
