@@ -21,8 +21,8 @@ pub fn deinit(self: *Library) void {
     self.* = undefined;
 }
 
-pub fn openFace(self: Library, sub_path: [:0]const u8) !Face {
-    return Face.openFace(self, sub_path);
+pub inline fn openFace(self: Library, sub_path: [:0]const u8, options: Face.Options) !Face {
+    return Face.openFace(self, sub_path, options);
 }
 
 pub const Impl = if (builtin.os.tag == .windows) DWriteImpl else FreetypeImpl;

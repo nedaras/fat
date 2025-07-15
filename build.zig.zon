@@ -4,6 +4,10 @@
     .fingerprint = 0x98958143514adcba,
     .minimum_zig_version = "0.14.1",
     .dependencies = .{
+        .harfbuzz = .{
+            .url = "git+https://github.com/harfbuzz/harfbuzz#3d154bc6b23ceb38b58931c58f30634a94b29b5d",
+            .hash = "N-V-__8AAMWOhgWq660cW-K9kLOzUTPhFYvQoI94PI5ggi7c",
+        },
     },
     .paths = .{
         "build.zig",

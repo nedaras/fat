@@ -14,7 +14,11 @@ int main() {
     return 1;
   }
 
-  err = fat_open_face(lib, &face, "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf");
+  ft_face_options_t options = {0};
+  options.size = 12.0;
+  options.face_index = 0;
+
+  err = fat_open_face(lib, &face, "/home/nedas/Downloads/8x13.bdf", options);
   if (err != fat_error_ok) {
     printf("fat_open_face failed: %s\n", fat_error_name(err));
     assert(fat_library_done(lib) == fat_error_ok);

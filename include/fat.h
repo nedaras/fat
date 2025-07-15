@@ -1,6 +1,14 @@
 #ifndef FAT_H
 #define FAT_H
 
+#include <stdint.h>
+
+#if defined(__APPLE__) && defined(__MACH__)
+    #define FT_FACE_DEFAULT_DPI 72
+#else
+    #define FT_FACE_DEFAULT_DPI 96
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -18,13 +26,19 @@ typedef enum {
   fat_error_unexpected,
 } fat_error_e;
 
+struct ft_face_options_s {
+  float size;
+  uint32_t face_index;
+} typedef ft_face_options_t;
+
 const char* fat_error_name(fat_error_e err);
 
 fat_error_e fat_init_library(library_t** library);
 
 fat_error_e fat_library_done(library_t* library);
 
-fat_error_e fat_open_face(library_t* library, face_t** face, const char* sub_path);
+// Open a new font face with the given file path.
+fat_error_e fat_open_face(library_t* library, face_t** face, const char* sub_path, ft_face_options_t options);
 
 fat_error_e fat_face_done(face_t* face);
 

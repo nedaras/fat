@@ -1,8 +1,14 @@
+const builtin = @import("builtin");
 const freetype = @import("freetype.zig");
+const windows = @import("windows.zig");
 
 const c = @cImport({
     @cInclude("hb.h");
-    @cInclude("hb-ft.h");
+    if (builtin.os.tag == .windows) {
+        @cInclude("hb-directwrite.h");
+    } else {
+        @cInclude("hb-ft.h");
+    }
 });
 
 pub const hb_face_t = c.hb_face_t;
@@ -23,3 +29,12 @@ pub inline fn hb_ft_font_create(face: *hb_face_t) error{OutOfMemory}!*hb_font_t 
 pub inline fn hb_font_destroy(face: *hb_font_t) void {
     c.hb_font_destroy(face);
 }
+
+pub inline fn hb_ft_font_create_referenced(ft_face: freetype.FT_Face) error{OutOfMemory}!*hb_font_t {
+    return c.hb_ft_font_create_referenced(@ptrCast(ft_face)) orelse return error.OutOfMemory;
+}
+
+pub inline fn hb_directwrite_font_create(dw_face: *windows.IDWriteFontFace) error{OutOfMemory}!*hb_font_t {
+    return c.hb_directwrite_font_create(@ptrCast(dw_face)) orelse return error.OutOfMemory;
+}
+

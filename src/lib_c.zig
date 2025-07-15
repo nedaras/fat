@@ -43,13 +43,17 @@ export fn fat_library_done(clibrary: ?*Library) callconv(.C) fat_error_e {
     return fat_error_e.ok;
 }
 
-export fn fat_open_face(clibrary: ?*Library, cface: ?**Face, sub_path: [*:0]const u8) callconv(.C) fat_error_e {
+export fn fat_open_face(clibrary: ?*Library, cface: ?**Face, sub_path: [*:0]const u8, coptions: Face.Options.C) callconv(.C) fat_error_e {
     const lib = clibrary orelse return fat_error_e.invalid_pointer;
     const out = cface orelse return fat_error_e.invalid_pointer;
 
     const face = c_allocator.create(Face) catch return fat_error_e.out_of_memory;
+    const options: Face.Options = .{
+        .size = .{ .points = coptions.size },
+        .face_index = coptions.face_index,
+    };
 
-    face.* = lib.openFace(mem.span(sub_path)) catch |err| {
+    face.* = lib.openFace(mem.span(sub_path), options) catch |err| {
         c_allocator.destroy(face);
         return switch (err) {
             error.FailedToOpen => fat_error_e.failed_to_open,
