@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <iso646.h>
 #include <stdio.h>
 #include <fat.h>
 
@@ -29,14 +30,28 @@ int main() {
 
   printf("idx: %d\n", idx);
 
-  ft_face_bbox_t bbox;
-  err = fat_face_glyph_bbox(face, idx, &bbox);
+  ft_face_glyph_t glyph;
+  err = fat_face_render_glyph(face, idx, &glyph);
   if (err != fat_error_ok) {
     printf("fat_face_glyph_bbox failed: %s\n", fat_error_name(err));
     goto err;
   }
 
-  printf("bbox: w=%d h=%d\n", bbox.width, bbox.width);
+  printf("bounds: w=%d h=%d\n", glyph.width, glyph.height);
+
+  for (int y = 0; y < glyph.height; y++) {
+    for (int x = 0; x < glyph.height; x++) {
+      uint8_t a = glyph.bitmap[y * glyph.width + x];
+      if (a == 0) {
+        printf("    ");
+      } else {
+        printf("%03d ", a);
+      }
+    }
+    printf("\n");
+  }
+
+  fat_face_glyph_done(glyph);
 
   assert(fat_face_done(face) == fat_error_ok);
   assert(fat_library_done(lib) == fat_error_ok);

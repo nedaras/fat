@@ -7,6 +7,7 @@ pub usingnamespace windows;
 
 const INT = windows.INT;
 const BOOL = windows.BOOL;
+const BYTE = windows.BYTE;
 const GUID = windows.GUID;
 const RECT = windows.RECT;
 const FLOAT = windows.FLOAT;
@@ -311,6 +312,27 @@ pub const IDWriteGlyphRunAnalysis = extern struct {
             else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
         };
     }
+
+    pub const CreateAlphaTextureError = error{
+        Unexpected,
+    };
+
+    pub fn CreateAlphaTexture(
+        self: *IDWriteGlyphRunAnalysis,
+        textureType: DWRITE_TEXTURE_TYPE,
+        textureBounds: *const RECT,
+        alphaValues: []u8
+    ) CreateAlphaTextureError!void {
+        const FnType = fn (*IDWriteGlyphRunAnalysis, DWRITE_TEXTURE_TYPE, *const RECT, [*]BYTE, UINT32) callconv(WINAPI) HRESULT;
+        const create_alpha_texture: *const FnType = @ptrCast(self.vtable[4]);
+        
+        const hr = create_alpha_texture(self, textureType, textureBounds, alphaValues.ptr, @intCast(alphaValues.len));
+        return switch (hr) {
+            windows.S_OK => {},
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
+
 };
 
 pub const DWriteCreateFactoryError = error{

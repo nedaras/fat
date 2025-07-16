@@ -36,6 +36,13 @@ struct ft_face_bbox_s {
   uint32_t height;
 } typedef ft_face_bbox_t;
 
+struct ft_face_glyph_s {
+  uint32_t width;
+  uint32_t height;
+
+  uint8_t* bitmap;
+} typedef ft_face_glyph_t;
+
 const char* fat_error_name(fat_error_e err);
 
 fat_error_e fat_init_library(library_t** library);
@@ -50,6 +57,10 @@ fat_error_e fat_face_done(face_t* face);
 fat_error_e fat_face_glyph_index(face_t* face, uint32_t codepoint, uint32_t* glyph_idex);
 
 fat_error_e fat_face_glyph_bbox(face_t* face, uint32_t glyph_index, ft_face_bbox_t* bbox);
+
+fat_error_e fat_face_render_glyph(face_t* face, uint32_t glyph_index, ft_face_glyph_t* glyph);
+
+void fat_face_glyph_done(ft_face_glyph_t glyph);
 
 #ifdef __cplusplus
 }

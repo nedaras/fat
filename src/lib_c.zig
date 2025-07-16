@@ -98,3 +98,31 @@ export fn fat_face_glyph_bbox(cface: ?*Face, glyph_index: u32, o_bbox: ?*Face.Gl
     };
     return fat_error_e.ok;
 }
+
+export fn fat_face_render_glyph(cface: ?*Face, glyph_index: u32, o_glyph: ?*Face.Glyph.C) callconv(.C) fat_error_e {
+    const face = cface orelse return fat_error_e.invalid_pointer;
+    const cglyph = o_glyph orelse return fat_error_e.invalid_pointer;
+
+    const glyph = face.renderGlyph(c_allocator, glyph_index) catch |err| return switch (err) {
+        error.OutOfMemory => fat_error_e.out_of_memory,
+        error.Unexpected => fat_error_e.unexpected,
+    };
+
+    cglyph.* = .{
+        .width = glyph.width,
+        .height = glyph.height,
+        .bitmap = glyph.bitmap.ptr,
+    };
+    return fat_error_e.ok;
+}
+
+// dont like the naming here maybe fat_face_glyph_render_done do glyph_render_t not glyph_t
+export fn fat_face_glyph_done(cglyph: Face.Glyph.C) void {
+    const glyph: Face.Glyph = .{
+        .width = cglyph.width,
+        .height = cglyph.height,
+        .bitmap = cglyph.bitmap[0..cglyph.width * cglyph.height],
+    };
+
+    glyph.deinit(c_allocator);
+}

@@ -5,7 +5,33 @@ const freetype = @import("freetype.zig");
 const harfbuzz = @import("harfbuzz.zig");
 const windows = @import("windows.zig");
 
+const assert = std.debug.assert;
+
+const Allocator = std.mem.Allocator;
+
 pub const default_dpi = if (builtin.os.tag == .macos) 72 else 96;
+
+pub const Glyph = struct {
+    width: u32,
+    height: u32,
+
+    // harfbuzz should give this to us in shaper or smth
+    //offset_x: u16,
+    //offset_y: u16,
+
+    bitmap: []u8,
+
+    pub const C = extern struct {
+        width: u32,
+        height: u32,
+
+        bitmap: [*]u8,
+    };
+
+    pub fn deinit(self: Glyph, allocator: Allocator) void {
+        allocator.free(self.bitmap);
+    }
+};
 
 pub const GlyphBoundingBox = struct {
     width: u32,
@@ -76,6 +102,11 @@ pub inline fn glyphIndex(self: Face, codepoint: u21) ?u32 {
 
 pub inline fn glyphBoundingBox(self: Face, glyph_index: u32) !GlyphBoundingBox {
     return self.impl.glyphBoundingBox(glyph_index);
+}
+
+
+pub inline fn renderGlyph(self: Face, allocator: Allocator, glyph_index: u32) !Glyph {
+    return self.impl.renderGlyph(allocator, glyph_index);
 }
 
 const Face = @This();
@@ -182,6 +213,70 @@ const DWriteImpl = struct {
             .height = @intCast(bounds.bottom - bounds.top),
         }; 
     }
+
+
+    pub fn renderGlyph(self: DWriteImpl, allocator: Allocator, glyph_index: u32) !Glyph {
+        const matrix = &windows.DWRITE_MATRIX{
+            .m11 = 1.0,
+            .m12 = 0.0,
+            .m21 = 0.0,
+            .m22 = 1.0,
+            .dx = 0.0,
+            .dy = 0.0,
+        };
+
+        const indicies = [1]windows.UINT16{@intCast(glyph_index)};
+
+        const glyph_run = windows.DWRITE_GLYPH_RUN{
+            .fontFace = self.dw_face,
+            .fontEmSize = @floatFromInt(self.size.pixels()),
+            .glyphCount = 1,
+            .glyphIndices = &indicies,
+            .glyphAdvances = null,
+            .glyphOffsets = null,
+            .isSideways = windows.FALSE,
+            .bidiLevel = 0,
+        };
+
+        const run_analysis = try self.library.impl.dw_factory.CreateGlyphRunAnalysis(
+            &glyph_run,
+            1.0,
+            matrix,
+            .DWRITE_RENDERING_MODE_NATURAL,
+            .DWRITE_MEASURING_MODE_NATURAL,
+            0.0,
+            0.0,
+        );
+        defer run_analysis.Release();
+
+        const bounds = try run_analysis.GetAlphaTextureBounds(.DWRITE_TEXTURE_CLEARTYPE_3x1);
+
+        const width: u32 = @intCast(bounds.right - bounds.left);
+        const height: u32 = @intCast(bounds.bottom - bounds.top);
+
+        const bitmap_len = @as(usize, @intCast(width)) * @as(usize, @intCast(height));
+
+        const bitmap = try allocator.alloc(u8, bitmap_len * 3);
+        errdefer allocator.free(bitmap);
+
+        try run_analysis.CreateAlphaTexture(.DWRITE_TEXTURE_CLEARTYPE_3x1, &bounds, bitmap);
+
+        for (0..bitmap_len) |i| {
+            const r = bitmap[i * 3 + 0];
+            const g = bitmap[i * 3 + 1];
+            const b = bitmap[i * 3 + 2];
+
+            bitmap[i] = (r + g + b) / 3;
+        }
+
+        assert(allocator.resize(bitmap, bitmap_len));
+
+        return .{
+            .width = width,
+            .height = height,
+            .bitmap = bitmap,
+        };
+    }
 };
 
 const FreetypeImpl = struct {
@@ -255,7 +350,20 @@ const FreetypeImpl = struct {
         };
     }
 
-    //pub fn loadGlyph(glyph_index: u32) ?void {
-    //}
+    // todo: add options for colors and stuff
+    // idk maybe its possible to directly copy into bitmap not needing like 2 allocations
+    pub fn renderGlyph(self: FreetypeImpl, allocator: Allocator, glyph_index: u32) !Glyph {
+        try freetype.FT_Load_Glyph(self.ft_face, glyph_index, .{ .render = true });
+        const bitmap = self.ft_face.glyph.bitmap;
 
+        if (bitmap.pitch != bitmap.width) {
+            @panic("not handling bitmap fonts");
+        }
+
+        return .{
+            .width = bitmap.width,
+            .height = bitmap.rows,
+            .bitmap = try allocator.dupe(u8, bitmap.buffer[0..bitmap.rows * @abs(bitmap.pitch)]),
+        };
+    }
 };
