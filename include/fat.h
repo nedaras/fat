@@ -36,31 +36,31 @@ struct ft_face_bbox_s {
   uint32_t height;
 } typedef ft_face_bbox_t;
 
-struct ft_face_glyph_s {
+struct ft_face_glyph_render_s {
   uint32_t width;
   uint32_t height;
 
   uint8_t* bitmap;
-} typedef ft_face_glyph_t;
+} typedef ft_face_glyph_render_t;
 
 const char* fat_error_name(fat_error_e err);
 
 fat_error_e fat_init_library(library_t** library);
 
-fat_error_e fat_library_done(library_t* library);
+void fat_library_done(library_t* library);
 
 // Open a new font face with the given file path.
 fat_error_e fat_open_face(library_t* library, face_t** face, const char* sub_path, ft_face_options_t options);
 
-fat_error_e fat_face_done(face_t* face);
+void fat_face_done(face_t* face);
 
 fat_error_e fat_face_glyph_index(face_t* face, uint32_t codepoint, uint32_t* glyph_idex);
 
 fat_error_e fat_face_glyph_bbox(face_t* face, uint32_t glyph_index, ft_face_bbox_t* bbox);
 
-fat_error_e fat_face_render_glyph(face_t* face, uint32_t glyph_index, ft_face_glyph_t* glyph);
+fat_error_e fat_face_render_glyph(face_t* face, uint32_t glyph_index, ft_face_glyph_render_t* glyph);
 
-void fat_face_glyph_done(ft_face_glyph_t glyph);
+void fat_face_glyph_render_done(ft_face_glyph_render_t glyph);
 
 #ifdef __cplusplus
 }

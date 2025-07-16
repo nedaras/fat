@@ -35,12 +35,11 @@ export fn fat_init_library(clibrary: ?**Library) callconv(.C) fat_error_e {
     return fat_error_e.ok;
 }
 
-export fn fat_library_done(clibrary: ?*Library) callconv(.C) fat_error_e {
-    const lib = clibrary orelse return fat_error_e.invalid_pointer;
-    lib.deinit();
+export fn fat_library_done(o_library: ?*Library) callconv(.C) void {
+    const library = o_library orelse return;
 
-    c_allocator.destroy(lib);
-    return fat_error_e.ok;
+    library.deinit();
+    c_allocator.destroy(library);
 }
 
 export fn fat_open_face(clibrary: ?*Library, cface: ?**Face, sub_path: [*:0]const u8, coptions: Face.OpenFaceOptions.C) callconv(.C) fat_error_e {
@@ -68,12 +67,11 @@ export fn fat_open_face(clibrary: ?*Library, cface: ?**Face, sub_path: [*:0]cons
     return fat_error_e.ok;
 }
 
-export fn fat_face_done(cface: ?*Face) callconv(.C) fat_error_e {
-    const face = cface orelse return fat_error_e.invalid_pointer;
-    face.close();
+export fn fat_face_done(o_face: ?*Face) callconv(.C) void {
+    const face = o_face orelse return;
 
+    face.close();
     c_allocator.destroy(face);
-    return fat_error_e.ok;
 }
 
 export fn fat_face_glyph_index(cface: ?*Face, codepoint: u32, o_glyph_index: ?*u32) callconv(.C) fat_error_e {
@@ -99,7 +97,7 @@ export fn fat_face_glyph_bbox(cface: ?*Face, glyph_index: u32, o_bbox: ?*Face.Gl
     return fat_error_e.ok;
 }
 
-export fn fat_face_render_glyph(cface: ?*Face, glyph_index: u32, o_glyph: ?*Face.Glyph.C) callconv(.C) fat_error_e {
+export fn fat_face_render_glyph(cface: ?*Face, glyph_index: u32, o_glyph: ?*Face.GlyphRender.C) callconv(.C) fat_error_e {
     const face = cface orelse return fat_error_e.invalid_pointer;
     const cglyph = o_glyph orelse return fat_error_e.invalid_pointer;
 
@@ -116,9 +114,8 @@ export fn fat_face_render_glyph(cface: ?*Face, glyph_index: u32, o_glyph: ?*Face
     return fat_error_e.ok;
 }
 
-// dont like the naming here maybe fat_face_glyph_render_done do glyph_render_t not glyph_t
-export fn fat_face_glyph_done(cglyph: Face.Glyph.C) void {
-    const glyph: Face.Glyph = .{
+export fn fat_face_glyph_render_done(cglyph: Face.GlyphRender.C) void {
+    const glyph: Face.GlyphRender = .{
         .width = cglyph.width,
         .height = cglyph.height,
         .bitmap = cglyph.bitmap[0..cglyph.width * cglyph.height],

@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <fat.h>
 
+// asserts are removed in unsafe builds
+
 int main() {
   library_t* lib = NULL;
   face_t* face = NULL;
@@ -15,7 +17,7 @@ int main() {
   }
 
   ft_face_options_t options = {0};
-  options.size = 128.0;
+  options.size = 32.0;
   options.face_index = 0;
 
   err = fat_open_face(lib, &face, "tests/arial.ttf", options);
@@ -25,11 +27,11 @@ int main() {
   }
 
   uint32_t idx;
-  assert(fat_face_glyph_index(face, 'A', &idx) == fat_error_ok);
+  fat_face_glyph_index(face, 'A', &idx);
 
   printf("idx: %d\n", idx);
 
-  ft_face_glyph_t glyph;
+  ft_face_glyph_render_t glyph;
   err = fat_face_render_glyph(face, idx, &glyph);
   if (err != fat_error_ok) {
     printf("fat_face_glyph_bbox failed: %s\n", fat_error_name(err));
@@ -45,16 +47,16 @@ int main() {
   fwrite(glyph.bitmap, 1, glyph.width * glyph.height, out);
 
   fclose(out);
-  fat_face_glyph_done(glyph);
 
-  assert(fat_face_done(face) == fat_error_ok);
-  assert(fat_library_done(lib) == fat_error_ok);
+  fat_face_glyph_render_done(glyph);
+  fat_face_done(face);
+  fat_library_done(lib);
 
   return 0;
 
 err:
-  if (face) assert(fat_face_done(face) == fat_error_ok);
-  if (lib) assert(fat_library_done(lib) == fat_error_ok);
+  fat_face_done(face);
+  fat_library_done(lib);
 
   return 1;
 }

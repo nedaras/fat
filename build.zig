@@ -1,55 +1,32 @@
 const std = @import("std");
+const libharfbuzz = @import("build/libharfbuzz.zig");
+
+const FontBackend = enum {
+    Directwrite,
+    Freetype,
+
+    pub fn default(target: std.Target) FontBackend {
+        return if (target.os.tag == .windows) .Directwrite else .Freetype;
+    }
+
+    pub fn hasFreetype(self: FontBackend) bool {
+        return switch (self) {
+            .Directwrite => false,
+            .Freetype => true,
+        };
+    }
+};
 
 pub fn build(b: *std.Build) void {
     // todo: clean this shit up
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const harfbuzz_deb = b.dependency("harfbuzz", .{
-        .target = target,
-        .optimize = optimize,
-    });
-
-    const harfbuzz = b.addSharedLibrary(.{
-        .name = "harfbuzz",
-        .target = target,
-        .optimize = optimize,
-    });
-
-    harfbuzz.linkLibCpp();
-    
-    if (target.result.os.tag == .windows) {
-        harfbuzz.linkSystemLibrary("dwrite");
-        harfbuzz.addCSourceFile(.{
-            .file = harfbuzz_deb.path("src/harfbuzz.cc"),
-            .flags = &.{
-                "-DHAVE_STDBOOL_H",
-                "-DHAVE_DIRECTWRITE"
-            },
-        });
-    } else {
-        harfbuzz.linkSystemLibrary("freetype2");
-        harfbuzz.addCSourceFile(.{
-            .file = harfbuzz_deb.path("src/harfbuzz.cc"),
-            .flags = &.{
-                "-DHAVE_STDBOOL_H",
-                "-DHAVE_UNISTD_H",
-                "-DHAVE_SYS_MMAN_H",
-                 "-DHAVE_PTHREAD=1",
-                "-DHAVE_FREETYPE=1",
-                "-DHAVE_FT_GET_VAR_BLEND_COORDINATES=1",
-                "-DHAVE_FT_SET_VAR_BLEND_COORDINATES=1",
-                "-DHAVE_FT_DONE_MM_VAR=1",
-                "-DHAVE_FT_GET_TRANSFORM=1",
-            },
-        });
-    }
-
-    harfbuzz.installHeadersDirectory(harfbuzz_deb.path("src"), "", .{
-        .include_extensions = &.{ ".h" },
-    });
-
-    b.installArtifact(harfbuzz);
+    const font_backend = b.option(
+        FontBackend,
+        "font-backend",
+        "The font backend to use for discovery and rasterization.",
+    ) orelse FontBackend.default(target.result);
 
     const lib_mod = b.createModule(.{
         .root_source_file = b.path("src/lib_c.zig"),
@@ -65,11 +42,23 @@ pub fn build(b: *std.Build) void {
     lib.linkLibC();
     lib.installHeader(b.path("include/fat.h"), "fat.h");
 
-    lib.linkLibrary(harfbuzz);
-
-    if (target.result.os.tag == .windows) {
-        lib.linkSystemLibrary("dwrite");
+    if (b.systemIntegrationOption("harfbuzz", .{ })) {
+        lib.linkSystemLibrary("harfbuzz");
     } else {
+        const harfbuzz = libharfbuzz.buildLib(b, .{
+            .target = target,
+            .optimize = optimize,
+            .directwrite_enabled = font_backend == .Directwrite,
+            .freetype_enabled = font_backend.hasFreetype(),
+        });
+        lib.linkLibrary(harfbuzz);
+    }
+
+    if (font_backend == .Directwrite) {
+        lib.linkSystemLibrary("dwrite");
+    }
+
+    if (font_backend.hasFreetype()) {
         lib.linkSystemLibrary("freetype2");
     }
 
