@@ -155,7 +155,7 @@ const DWriteImpl = struct {
 
         const glyph_run = windows.DWRITE_GLYPH_RUN{
             .fontFace = self.dw_face,
-            .fontEmSize = self.size.points,
+            .fontEmSize = @floatFromInt(self.size.pixels()),
             .glyphCount = 1,
             .glyphIndices = &indicies,
             .glyphAdvances = null,
