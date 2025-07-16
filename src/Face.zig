@@ -262,11 +262,11 @@ const DWriteImpl = struct {
         try run_analysis.CreateAlphaTexture(.DWRITE_TEXTURE_CLEARTYPE_3x1, &bounds, bitmap);
 
         for (0..bitmap_len) |i| {
-            const r = bitmap[i * 3 + 0];
-            const g = bitmap[i * 3 + 1];
-            const b = bitmap[i * 3 + 2];
+            const r: f32 = @floatFromInt(bitmap[i * 3 + 0]);
+            const g: f32 = @floatFromInt(bitmap[i * 3 + 1]);
+            const b: f32 = @floatFromInt(bitmap[i * 3 + 2]);
 
-            bitmap[i] = (r + g + b) / 3;
+            bitmap[i] = @intFromFloat((r + g + b) / 3);
         }
 
         assert(allocator.resize(bitmap, bitmap_len));
