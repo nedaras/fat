@@ -83,6 +83,8 @@ const Face = @This();
 pub const Impl = if (builtin.os.tag == .windows) DWriteImpl else FreetypeImpl;
 
 const DWriteImpl = struct {
+    library: Library,
+
     dw_face: *windows.IDWriteFontFace,
     hb_font: *harfbuzz.hb_font_t,
 
@@ -93,7 +95,7 @@ const DWriteImpl = struct {
         tmp_path.len = try std.unicode.wtf8ToWtf16Le(&tmp_path.data, sub_path);
         tmp_path.data[tmp_path.len] = 0;
 
-        const font_file = library.impl.dwrite_factory.CreateFontFileReference(tmp_path.span(), null) catch |err| return switch (err) {
+        const font_file = library.impl.dw_factory.CreateFontFileReference(tmp_path.span(), null) catch |err| return switch (err) {
             error.FontNotFound,
             error.AccessDenied => error.FailedToOpen,
             else => |e| e,
@@ -107,13 +109,14 @@ const DWriteImpl = struct {
 
         try font_file.Analyze(&file_type, &face_type, &faces);
          
-        const dw_face = try library.impl.dwrite_factory.CreateFontFace(face_type, &.{font_file}, options.face_index, .DWRITE_FONT_SIMULATIONS_NONE);
+        const dw_face = try library.impl.dw_factory.CreateFontFace(face_type, &.{font_file}, options.face_index, .DWRITE_FONT_SIMULATIONS_NONE);
         errdefer dw_face.Release();
 
         const hb_font = try harfbuzz.hb_directwrite_font_create(dw_face);
         errdefer harfbuzz.hb_font_destroy(hb_font);
 
         return .{
+            .library = library,
             .dw_face = dw_face,
             .hb_font = hb_font,
             .size = options.size,
@@ -139,9 +142,45 @@ const DWriteImpl = struct {
     }
 
     pub fn glyphBoundingBox(self: DWriteImpl, glyph_index: u32) !GlyphBoundingBox {
-        _ = self;
-        _ = glyph_index;
-        return error.Unexpected;
+        const matrix = &windows.DWRITE_MATRIX{
+            .m11 = 1.0,
+            .m12 = 0.0,
+            .m21 = 0.0,
+            .m22 = 1.0,
+            .dx = 0.0,
+            .dy = 0.0,
+        };
+
+        const indicies = [1]windows.UINT16{@intCast(glyph_index)};
+
+        const glyph_run = windows.DWRITE_GLYPH_RUN{
+            .fontFace = self.dw_face,
+            .fontEmSize = self.size.points,
+            .glyphCount = 1,
+            .glyphIndices = &indicies,
+            .glyphAdvances = null,
+            .glyphOffsets = null,
+            .isSideways = windows.FALSE,
+            .bidiLevel = 0,
+        };
+
+        const run_analysis = try self.library.impl.dw_factory.CreateGlyphRunAnalysis(
+            &glyph_run,
+            1.0,
+            matrix,
+            .DWRITE_RENDERING_MODE_NATURAL,
+            .DWRITE_MEASURING_MODE_NATURAL,
+            0.0,
+            0.0,
+        );
+        defer run_analysis.Release();
+
+        const bounds = try run_analysis.GetAlphaTextureBounds(.DWRITE_TEXTURE_CLEARTYPE_3x1);
+
+        return .{
+            .width = @intCast(bounds.right - bounds.left),
+            .height = @intCast(bounds.bottom - bounds.top),
+        }; 
     }
 };
 

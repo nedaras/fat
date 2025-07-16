@@ -28,24 +28,24 @@ pub inline fn openFace(self: Library, sub_path: [:0]const u8, options: Face.Open
 pub const Impl = if (builtin.os.tag == .windows) DWriteImpl else FreetypeImpl;
 
 const DWriteImpl = struct {
-    dwrite_factory: *windows.IDWriteFactory,
+    dw_factory: *windows.IDWriteFactory,
 
     pub fn init() InitError!DWriteImpl {
-        var dwrite_factory: *windows.IDWriteFactory = undefined;
+        var dw_factory: *windows.IDWriteFactory = undefined;
 
         try windows.DWriteCreateFactory(
             .DWRITE_FACTORY_TYPE_SHARED,
             windows.IDWriteFactory.UUID,
-            @ptrCast(&dwrite_factory),
+            @ptrCast(&dw_factory),
         );
 
         return .{
-            .dwrite_factory = dwrite_factory,
+            .dw_factory = dw_factory,
         };
     }
 
     pub fn deinit(self: *DWriteImpl) void {
-        self.dwrite_factory.Release();
+        self.dw_factory.Release();
     }
 };
 

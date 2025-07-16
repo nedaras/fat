@@ -18,7 +18,7 @@ int main() {
   options.size = 32.0;
   options.face_index = 0;
 
-  err = fat_open_face(lib, &face, "tests/8x13.bdf", options);
+  err = fat_open_face(lib, &face, "C:\\Windows\\Fonts\\arial.ttf", options);
   if (err != fat_error_ok) {
     printf("fat_open_face failed: %s\n", fat_error_name(err));
     goto err;

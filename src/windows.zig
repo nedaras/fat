@@ -3,9 +3,13 @@ const dwrite = @import("windows/dwrite.zig");
 const windows = std.os.windows;
 const assert = std.debug.assert;
 
+pub usingnamespace windows;
+
 const INT = windows.INT;
 const BOOL = windows.BOOL;
 const GUID = windows.GUID;
+const RECT = windows.RECT;
+const FLOAT = windows.FLOAT;
 const ULONG = windows.ULONG;
 const WINAPI = windows.WINAPI;
 const HRESULT = windows.HRESULT;
@@ -48,7 +52,51 @@ pub const DWRITE_FONT_SIMULATIONS = enum(INT) {
     DWRITE_FONT_SIMULATIONS_OBLIQUE = 0x0002
 };
 
-pub usingnamespace windows;
+pub const DWRITE_RENDERING_MODE = enum(INT) {
+    DWRITE_RENDERING_MODE_DEFAULT,
+    DWRITE_RENDERING_MODE_ALIASED,
+    DWRITE_RENDERING_MODE_GDI_CLASSIC,
+    DWRITE_RENDERING_MODE_GDI_NATURAL,
+    DWRITE_RENDERING_MODE_NATURAL,
+    DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC,
+    DWRITE_RENDERING_MODE_OUTLINE,
+};
+
+pub const DWRITE_MEASURING_MODE = enum(INT) {
+    DWRITE_MEASURING_MODE_NATURAL,
+    DWRITE_MEASURING_MODE_GDI_CLASSIC,
+    DWRITE_MEASURING_MODE_GDI_NATURAL
+};
+
+pub const DWRITE_TEXTURE_TYPE = enum(INT) {
+    DWRITE_TEXTURE_ALIASED_1x1,
+    DWRITE_TEXTURE_CLEARTYPE_3x1
+};
+
+pub const DWRITE_MATRIX = extern struct {
+    m11: FLOAT,
+    m12: FLOAT,
+    m21: FLOAT,
+    m22: FLOAT,
+    dx: FLOAT,
+    dy: FLOAT,
+};
+
+pub const DWRITE_GLYPH_OFFSET = extern struct {
+    advanceOffset: FLOAT,
+    ascenderOffset: FLOAT,
+};
+
+pub const DWRITE_GLYPH_RUN = extern struct {
+    fontFace: *IDWriteFontFace,
+    fontEmSize: FLOAT,
+    glyphCount: UINT32,
+    glyphIndices: ?[*]const UINT16,
+    glyphAdvances: ?[*]const FLOAT,
+    glyphOffsets: ?[*]const DWRITE_GLYPH_OFFSET,
+    isSideways: BOOL,
+    bidiLevel: UINT32,
+};
 
 pub const IUnknown = extern struct {
     vtable: *const IUnknownVTable,
@@ -149,6 +197,42 @@ pub const IDWriteFactory = extern struct {
             else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
         };
     }
+
+    pub const CreateGlyphRunAnalysisError = error{
+        Unexpected,
+    };
+
+    pub fn CreateGlyphRunAnalysis(
+        self: *IDWriteFactory,
+        glyphRun: *const DWRITE_GLYPH_RUN,
+        pixelsPerDip: FLOAT,
+        transform: ?*const DWRITE_MATRIX,
+        renderingMode: DWRITE_RENDERING_MODE,
+        measuringMode: DWRITE_MEASURING_MODE,
+        baselineOriginX: FLOAT,
+        baselineOriginY: FLOAT,
+    ) CreateGlyphRunAnalysisError!*IDWriteGlyphRunAnalysis {
+        const FnType = fn (
+            *IDWriteFactory,
+            *const DWRITE_GLYPH_RUN,
+            FLOAT,
+            ?*const DWRITE_MATRIX,
+            DWRITE_RENDERING_MODE,
+            DWRITE_MEASURING_MODE,
+            FLOAT,
+            FLOAT,
+            **IDWriteGlyphRunAnalysis
+        ) callconv(WINAPI) HRESULT;
+
+        const create_glyph_run_analysis: *const FnType = @ptrCast(self.vtable[23]);
+        var glyphRunAnalysis: *IDWriteGlyphRunAnalysis = undefined;
+
+        const hr = create_glyph_run_analysis(self, glyphRun, pixelsPerDip, transform, renderingMode, measuringMode, baselineOriginX, baselineOriginY, &glyphRunAnalysis);
+        return switch (hr) {
+            windows.S_OK => glyphRunAnalysis,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
 };
 
 pub const IDWriteFontFile = extern struct {
@@ -201,6 +285,31 @@ pub const IDWriteFontFace = extern struct {
         const get_glyph_indicies: *const FnType = @ptrCast(self.vtable[11]);
 
         assert(get_glyph_indicies(self, codePoints.ptr, @intCast(codePoints.len), glyphIndices.ptr) == windows.S_OK);
+    }
+};
+
+pub const IDWriteGlyphRunAnalysis = extern struct {
+    vtable: [*]const *const anyopaque,
+
+    pub inline fn Release(self: *IDWriteGlyphRunAnalysis) void {
+        IUnknown.Release(@ptrCast(self));
+    }
+
+    pub const GetAlphaTextureBoundsError = error{
+        Unexpected,
+    };
+
+    pub fn GetAlphaTextureBounds(self: *IDWriteGlyphRunAnalysis, textureType: DWRITE_TEXTURE_TYPE) GetAlphaTextureBoundsError!RECT {
+        const FnType = fn (*IDWriteGlyphRunAnalysis, DWRITE_TEXTURE_TYPE, *RECT) callconv(WINAPI) HRESULT;
+        const get_alpha_texture_bounds: *const FnType = @ptrCast(self.vtable[4]);
+
+        var textureBounds: RECT = undefined;
+
+        const hr = get_alpha_texture_bounds(self, textureType, &textureBounds);
+        return switch (hr) {
+            windows.S_OK => textureBounds,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
     }
 };
 
