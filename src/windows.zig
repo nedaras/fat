@@ -301,7 +301,7 @@ pub const IDWriteGlyphRunAnalysis = extern struct {
 
     pub fn GetAlphaTextureBounds(self: *IDWriteGlyphRunAnalysis, textureType: DWRITE_TEXTURE_TYPE) GetAlphaTextureBoundsError!RECT {
         const FnType = fn (*IDWriteGlyphRunAnalysis, DWRITE_TEXTURE_TYPE, *RECT) callconv(WINAPI) HRESULT;
-        const get_alpha_texture_bounds: *const FnType = @ptrCast(self.vtable[4]);
+        const get_alpha_texture_bounds: *const FnType = @ptrCast(self.vtable[3]);
 
         var textureBounds: RECT = undefined;
 
