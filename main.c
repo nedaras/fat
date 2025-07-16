@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <iso646.h>
 #include <stdio.h>
 #include <fat.h>
 
@@ -16,7 +15,7 @@ int main() {
   }
 
   ft_face_options_t options = {0};
-  options.size = 32.0;
+  options.size = 128.0;
   options.face_index = 0;
 
   err = fat_open_face(lib, &face, "tests/arial.ttf", options);
@@ -39,18 +38,13 @@ int main() {
 
   printf("bounds: w=%d h=%d\n", glyph.width, glyph.height);
 
-  for (int y = 0; y < glyph.height; y++) {
-    for (int x = 0; x < glyph.height; x++) {
-      uint8_t a = glyph.bitmap[y * glyph.width + x];
-      if (a == 0) {
-        printf("    ");
-      } else {
-        printf("%03d ", a);
-      }
-    }
-    printf("\n");
-  }
+  FILE* out = fopen("out.ppm", "wb");
+  assert(out != NULL);
 
+  fprintf(out, "P5\n%d %d\n255\n", glyph.width, glyph.height);
+  fwrite(glyph.bitmap, 1, glyph.width * glyph.height, out);
+
+  fclose(out);
   fat_face_glyph_done(glyph);
 
   assert(fat_face_done(face) == fat_error_ok);
