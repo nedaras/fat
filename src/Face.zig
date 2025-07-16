@@ -266,7 +266,7 @@ const DWriteImpl = struct {
             const g: f32 = @floatFromInt(bitmap[i * 3 + 1]);
             const b: f32 = @floatFromInt(bitmap[i * 3 + 2]);
 
-            bitmap[i] = @intFromFloat((r + g + b) / 3);
+            bitmap[i] = @intFromFloat(r * 0.2989 + g * 0.587 + b * 0.114);
         }
 
         assert(allocator.resize(bitmap, bitmap_len));
