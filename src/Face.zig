@@ -7,6 +7,16 @@ const windows = @import("windows.zig");
 
 pub const default_dpi = if (builtin.os.tag == .macos) 72 else 96;
 
+pub const GlyphBoundingBox = struct {
+    width: u32,
+    height: u32,
+
+    pub const C = extern struct {
+        width: u32,
+        height: u32,
+    };
+};
+
 /// The desired size for loading a font.
 pub const DesiredSize = struct {
     // Desired size in points
@@ -25,7 +35,7 @@ pub const DesiredSize = struct {
 
 impl: Impl,
 
-pub const Options = struct {
+pub const OpenFaceOptions = struct {
     size: DesiredSize,
     face_index: u32 = 0,
 
@@ -44,7 +54,7 @@ pub const OpenFaceError = error{
 };
 
 /// Open a new font face with the given file path.
-pub fn openFace(library: Library, sub_path: [:0]const u8, options: Options) OpenFaceError!Face {
+pub fn openFace(library: Library, sub_path: [:0]const u8, options: OpenFaceOptions) OpenFaceError!Face {
     return .{
         .impl = try Impl.openFace(library, sub_path, options),
     };
@@ -60,6 +70,14 @@ pub inline fn setSize(self: *Face, size: DesiredSize) !void {
     return self.impl.setSize(size);
 }
 
+pub inline fn glyphIndex(self: Face, codepoint: u21) ?u32 {
+    return self.impl.gyphIndex(codepoint);
+}
+
+pub inline fn glyphBoundingBox(self: Face, glyph_index: u32) !GlyphBoundingBox {
+    return self.impl.glyphBoundingBox(glyph_index);
+}
+
 const Face = @This();
 
 pub const Impl = if (builtin.os.tag == .windows) DWriteImpl else FreetypeImpl;
@@ -70,7 +88,7 @@ const DWriteImpl = struct {
 
     size: DesiredSize,
 
-    pub fn openFace(library: Library, sub_path: [:0]const u8, options: Options) !DWriteImpl {
+    pub fn openFace(library: Library, sub_path: [:0]const u8, options: OpenFaceOptions) !DWriteImpl {
         var tmp_path: windows.PathSpace = undefined;
         tmp_path.len = try std.unicode.wtf8ToWtf16Le(&tmp_path.data, sub_path);
         tmp_path.data[tmp_path.len] = 0;
@@ -107,9 +125,23 @@ const DWriteImpl = struct {
         self.dw_face.Release();
     }
 
-
     pub fn setSize(self: *DWriteImpl, size: DesiredSize) !void {
         self.size = size;
+    }
+
+    pub fn gyphIndex(self: DWriteImpl, codepoint: u21) ?u32 {
+        const codepoints = [1]windows.UINT32{ codepoint };
+        var indicies = [1]windows.UINT16{ 0 };
+
+        self.dw_face.GetGlyphIndices(&codepoints, &indicies);
+
+        return if (indicies[0] == 0) null else indicies[0];
+    }
+
+    pub fn glyphBoundingBox(self: DWriteImpl, glyph_index: u32) !GlyphBoundingBox {
+        _ = self;
+        _ = glyph_index;
+        return error.Unexpected;
     }
 };
 
@@ -119,7 +151,7 @@ const FreetypeImpl = struct {
 
     size: DesiredSize,
 
-    pub fn openFace(library: Library, sub_path: [:0]const u8, options: Options) !FreetypeImpl {
+    pub fn openFace(library: Library, sub_path: [:0]const u8, options: OpenFaceOptions) !FreetypeImpl {
         var ft_face: freetype.FT_Face = undefined;
 
         try freetype.FT_New_Face(library.impl.ft_library, sub_path, options.face_index, &ft_face);
@@ -171,6 +203,20 @@ const FreetypeImpl = struct {
         };
     }
 
-    //pub fn renderGlyph() void {
+    pub inline fn gyphIndex(self: FreetypeImpl, codepoint: u21) ?u32 {
+        return freetype.FT_Get_Char_Index(self.ft_face, codepoint);
+    }
+
+    pub fn glyphBoundingBox(self: FreetypeImpl, glyph_index: u32) !GlyphBoundingBox {
+        try freetype.FT_Load_Glyph(self.ft_face, glyph_index, .{});
+        const bitmap = self.ft_face.glyph.bitmap;
+        return .{
+            .width = bitmap.width,
+            .height = bitmap.rows,
+        };
+    }
+
+    //pub fn loadGlyph(glyph_index: u32) ?void {
     //}
+
 };

@@ -1,8 +1,8 @@
 const std = @import("std");
 const dwrite = @import("windows/dwrite.zig");
 const windows = std.os.windows;
+const assert = std.debug.assert;
 
-const UINT32 = u32;
 const INT = windows.INT;
 const BOOL = windows.BOOL;
 const GUID = windows.GUID;
@@ -11,6 +11,8 @@ const WINAPI = windows.WINAPI;
 const HRESULT = windows.HRESULT;
 const FILETIME = windows.FILETIME;
 
+pub const UINT32 = u32;
+pub const UINT16 = u16;
 pub const REFIID = *const GUID;
 
 pub const DWRITE_FACTORY_TYPE = enum(INT) {
@@ -186,6 +188,19 @@ pub const IDWriteFontFace = extern struct {
 
     pub inline fn Release(self: *IDWriteFontFace) void {
         IUnknown.Release(@ptrCast(self));
+    }
+
+    pub fn GetGlyphIndices(
+        self: *IDWriteFontFace,
+        codePoints: []const UINT32,
+        glyphIndices: []UINT16,
+    ) void {
+        assert(codePoints.len == glyphIndices.len);
+
+        const FnType = fn (*IDWriteFontFace, [*]const UINT32, UINT32, [*]UINT16) callconv(WINAPI) HRESULT;
+        const get_glyph_indicies: *const FnType = @ptrCast(self.vtable[11]);
+
+        assert(get_glyph_indicies(self, codePoints.ptr, @intCast(codePoints.len), glyphIndices.ptr) == windows.S_OK);
     }
 };
 

@@ -21,7 +21,7 @@ pub fn deinit(self: *Library) void {
     self.* = undefined;
 }
 
-pub inline fn openFace(self: Library, sub_path: [:0]const u8, options: Face.Options) !Face {
+pub inline fn openFace(self: Library, sub_path: [:0]const u8, options: Face.OpenFaceOptions) !Face {
     return Face.openFace(self, sub_path, options);
 }
 

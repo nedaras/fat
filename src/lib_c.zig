@@ -43,12 +43,12 @@ export fn fat_library_done(clibrary: ?*Library) callconv(.C) fat_error_e {
     return fat_error_e.ok;
 }
 
-export fn fat_open_face(clibrary: ?*Library, cface: ?**Face, sub_path: [*:0]const u8, coptions: Face.Options.C) callconv(.C) fat_error_e {
+export fn fat_open_face(clibrary: ?*Library, cface: ?**Face, sub_path: [*:0]const u8, coptions: Face.OpenFaceOptions.C) callconv(.C) fat_error_e {
     const lib = clibrary orelse return fat_error_e.invalid_pointer;
     const out = cface orelse return fat_error_e.invalid_pointer;
 
     const face = c_allocator.create(Face) catch return fat_error_e.out_of_memory;
-    const options: Face.Options = .{
+    const options: Face.OpenFaceOptions = .{
         .size = .{ .points = coptions.size },
         .face_index = coptions.face_index,
     };
@@ -73,5 +73,28 @@ export fn fat_face_done(cface: ?*Face) callconv(.C) fat_error_e {
     face.close();
 
     c_allocator.destroy(face);
+    return fat_error_e.ok;
+}
+
+export fn fat_face_glyph_index(cface: ?*Face, codepoint: u32, o_glyph_index: ?*u32) callconv(.C) fat_error_e {
+    const face = cface orelse return fat_error_e.invalid_pointer;
+    const glyph_index = o_glyph_index orelse return fat_error_e.invalid_pointer;
+
+    glyph_index.* = face.glyphIndex(@intCast(codepoint)) orelse 0;
+    return fat_error_e.ok;
+}
+
+export fn fat_face_glyph_bbox(cface: ?*Face, glyph_index: u32, o_bbox: ?*Face.GlyphBoundingBox.C) callconv(.C) fat_error_e {
+    const face = cface orelse return fat_error_e.invalid_pointer;
+    const bbox = o_bbox orelse return fat_error_e.invalid_pointer;
+
+    const box = face.glyphBoundingBox(glyph_index) catch |err| return switch (err) {
+        error.Unexpected => fat_error_e.unexpected,
+    };
+
+    bbox.* = .{
+        .width = box.width,
+        .height = box.height,
+    };
     return fat_error_e.ok;
 }

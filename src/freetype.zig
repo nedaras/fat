@@ -10,7 +10,9 @@ const c = @cImport({
 const FT_Int = abi.FT_Int;
 const FT_Long = abi.FT_Long;
 const FT_UInt = abi.FT_UInt;
+const FT_ULong = abi.FT_ULong;
 const FT_Error = abi.FT_Error;
+const LoadFlags = abi.LoadFlags;
 const FT_F26Dot6 = abi.FT_F26Dot6;
 
 pub const FT_Face = abi.FT_Face;
@@ -94,6 +96,23 @@ pub const FTSelectSizeError = error{
 
 pub fn FT_Select_Size(face: FT_Face, strike_index: FT_Int) FTSelectSizeError!void {
     const err = abi.FT_Select_Size(face, strike_index);
+    return switch (err) {
+        .Ok => {},
+        else => unexpectedError(err),
+    };
+}
+
+pub fn FT_Get_Char_Index(face: FT_Face, charcode: FT_ULong) ?FT_UInt {
+    const idx = abi.FT_Get_Char_Index(face, charcode);
+    return if (idx == 0) null else idx;
+}
+
+pub const FTLoadGlyphError = error{
+    Unexpected,
+};
+
+pub fn FT_Load_Glyph(face: FT_Face, glyph_index: FT_UInt, load_flags: LoadFlags) FTLoadGlyphError!void {
+    const err = abi.FT_Load_Glyph(face, glyph_index, load_flags);
     return switch (err) {
         .Ok => {},
         else => unexpectedError(err),
