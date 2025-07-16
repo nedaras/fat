@@ -20,8 +20,7 @@ pub const Face = struct {
         tmp_path.data[tmp_path.len] = 0;
 
         const font_file = library.impl.dw_factory.CreateFontFileReference(tmp_path.span(), null) catch |err| return switch (err) {
-            error.FontNotFound,
-            error.AccessDenied => error.FailedToOpen,
+            error.FontNotFound, error.AccessDenied => error.FailedToOpen,
             else => |e| e,
         };
         defer font_file.Release();
@@ -57,8 +56,8 @@ pub const Face = struct {
     }
 
     pub fn gyphIndex(self: Face, codepoint: u21) ?u32 {
-        const codepoints = [1]windows.UINT32{ codepoint };
-        var indicies = [1]windows.UINT16{ 0 };
+        const codepoints = [1]windows.UINT32{codepoint};
+        var indicies = [1]windows.UINT16{0};
 
         self.dw_face.GetGlyphIndices(&codepoints, &indicies);
 
@@ -104,7 +103,7 @@ pub const Face = struct {
         return .{
             .width = @intCast(bounds.right - bounds.left),
             .height = @intCast(bounds.bottom - bounds.top),
-        }; 
+        };
     }
 
     pub fn renderGlyph(self: Face, allocator: Allocator, glyph_index: u32) !shared.GlyphRender {

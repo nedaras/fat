@@ -118,7 +118,7 @@ export fn fat_face_glyph_render_done(cglyph: Face.GlyphRender.C) void {
     const glyph: Face.GlyphRender = .{
         .width = cglyph.width,
         .height = cglyph.height,
-        .bitmap = cglyph.bitmap[0..cglyph.width * cglyph.height],
+        .bitmap = cglyph.bitmap[0 .. cglyph.width * cglyph.height],
     };
 
     glyph.deinit(c_allocator);

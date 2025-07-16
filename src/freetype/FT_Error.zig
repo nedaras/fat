@@ -1,4 +1,4 @@
-pub const FT_Error = enum (c_int) {
+pub const FT_Error = enum(c_int) {
     Ok = 0,
     Cannot_Open_Resource = 1,
     Unknown_File_Format = 2,

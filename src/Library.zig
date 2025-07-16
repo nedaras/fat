@@ -1,4 +1,6 @@
+const std = @import("std");
 const builtin = @import("builtin");
+const build_options = @import("build_options");
 const windows = @import("windows.zig");
 const freetype = @import("freetype.zig");
 const Face = @import("Face.zig");
@@ -25,7 +27,7 @@ pub inline fn openFace(self: Library, sub_path: [:0]const u8, options: Face.Open
     return Face.openFace(self, sub_path, options);
 }
 
-pub const Impl = if (builtin.os.tag == .windows) DWriteImpl else FreetypeImpl;
+pub const Impl = if (build_options.font_backend == .Directwrite) DWriteImpl else FreetypeImpl;
 
 const DWriteImpl = struct {
     dw_factory: *windows.IDWriteFactory,

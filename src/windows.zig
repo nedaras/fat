@@ -47,11 +47,7 @@ pub const DWRITE_FONT_FACE_TYPE = enum(INT) {
     DWRITE_FONT_FACE_TYPE_RAW_CFF,
 };
 
-pub const DWRITE_FONT_SIMULATIONS = enum(INT) {
-    DWRITE_FONT_SIMULATIONS_NONE    = 0x0000,
-    DWRITE_FONT_SIMULATIONS_BOLD    = 0x0001,
-    DWRITE_FONT_SIMULATIONS_OBLIQUE = 0x0002
-};
+pub const DWRITE_FONT_SIMULATIONS = enum(INT) { DWRITE_FONT_SIMULATIONS_NONE = 0x0000, DWRITE_FONT_SIMULATIONS_BOLD = 0x0001, DWRITE_FONT_SIMULATIONS_OBLIQUE = 0x0002 };
 
 pub const DWRITE_RENDERING_MODE = enum(INT) {
     DWRITE_RENDERING_MODE_DEFAULT,
@@ -63,16 +59,9 @@ pub const DWRITE_RENDERING_MODE = enum(INT) {
     DWRITE_RENDERING_MODE_OUTLINE,
 };
 
-pub const DWRITE_MEASURING_MODE = enum(INT) {
-    DWRITE_MEASURING_MODE_NATURAL,
-    DWRITE_MEASURING_MODE_GDI_CLASSIC,
-    DWRITE_MEASURING_MODE_GDI_NATURAL
-};
+pub const DWRITE_MEASURING_MODE = enum(INT) { DWRITE_MEASURING_MODE_NATURAL, DWRITE_MEASURING_MODE_GDI_CLASSIC, DWRITE_MEASURING_MODE_GDI_NATURAL };
 
-pub const DWRITE_TEXTURE_TYPE = enum(INT) {
-    DWRITE_TEXTURE_ALIASED_1x1,
-    DWRITE_TEXTURE_CLEARTYPE_3x1
-};
+pub const DWRITE_TEXTURE_TYPE = enum(INT) { DWRITE_TEXTURE_ALIASED_1x1, DWRITE_TEXTURE_CLEARTYPE_3x1 };
 
 pub const DWRITE_MATRIX = extern struct {
     m11: FLOAT,
@@ -213,17 +202,7 @@ pub const IDWriteFactory = extern struct {
         baselineOriginX: FLOAT,
         baselineOriginY: FLOAT,
     ) CreateGlyphRunAnalysisError!*IDWriteGlyphRunAnalysis {
-        const FnType = fn (
-            *IDWriteFactory,
-            *const DWRITE_GLYPH_RUN,
-            FLOAT,
-            ?*const DWRITE_MATRIX,
-            DWRITE_RENDERING_MODE,
-            DWRITE_MEASURING_MODE,
-            FLOAT,
-            FLOAT,
-            **IDWriteGlyphRunAnalysis
-        ) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteFactory, *const DWRITE_GLYPH_RUN, FLOAT, ?*const DWRITE_MATRIX, DWRITE_RENDERING_MODE, DWRITE_MEASURING_MODE, FLOAT, FLOAT, **IDWriteGlyphRunAnalysis) callconv(WINAPI) HRESULT;
 
         const create_glyph_run_analysis: *const FnType = @ptrCast(self.vtable[23]);
         var glyphRunAnalysis: *IDWriteGlyphRunAnalysis = undefined;
@@ -317,22 +296,16 @@ pub const IDWriteGlyphRunAnalysis = extern struct {
         Unexpected,
     };
 
-    pub fn CreateAlphaTexture(
-        self: *IDWriteGlyphRunAnalysis,
-        textureType: DWRITE_TEXTURE_TYPE,
-        textureBounds: *const RECT,
-        alphaValues: []u8
-    ) CreateAlphaTextureError!void {
+    pub fn CreateAlphaTexture(self: *IDWriteGlyphRunAnalysis, textureType: DWRITE_TEXTURE_TYPE, textureBounds: *const RECT, alphaValues: []u8) CreateAlphaTextureError!void {
         const FnType = fn (*IDWriteGlyphRunAnalysis, DWRITE_TEXTURE_TYPE, *const RECT, [*]BYTE, UINT32) callconv(WINAPI) HRESULT;
         const create_alpha_texture: *const FnType = @ptrCast(self.vtable[4]);
-        
+
         const hr = create_alpha_texture(self, textureType, textureBounds, alphaValues.ptr, @intCast(alphaValues.len));
         return switch (hr) {
             windows.S_OK => {},
             else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
         };
     }
-
 };
 
 pub const DWriteCreateFactoryError = error{

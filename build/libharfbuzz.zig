@@ -50,7 +50,7 @@ pub fn buildLib(b: *std.Build, options: anytype) *std.Build.Step.Compile {
     });
 
     lib.installHeadersDirectory(harfbuzz.path("src"), "", .{
-        .include_extensions = &.{ ".h" },
+        .include_extensions = &.{".h"},
     });
 
     b.installArtifact(lib);

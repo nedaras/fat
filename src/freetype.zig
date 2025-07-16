@@ -56,8 +56,7 @@ pub fn FT_New_Face(
         .Ok => {},
         .Out_Of_Memory => error.OutOfMemory,
         .Cannot_Open_Resource => error.FailedToOpen,
-        .Unknown_File_Format, 
-        .Invalid_File_Format => error.NotSupported,
+        .Unknown_File_Format, .Invalid_File_Format => error.NotSupported,
         else => unexpectedError(err),
     };
 }
@@ -72,7 +71,7 @@ pub const FTSetCharSizeError = error{
 };
 
 pub fn FT_Set_Char_Size(
-    face: FT_Face, 
+    face: FT_Face,
     char_width: FT_F26Dot6,
     char_height: FT_F26Dot6,
     horz_resolution: FT_UInt,

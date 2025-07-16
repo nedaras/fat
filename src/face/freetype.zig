@@ -5,6 +5,8 @@ const shared = @import("shared.zig");
 const Library = @import("../Library.zig");
 const Allocator = std.mem.Allocator;
 
+// todo: make freetype threadsafe dwrite
+
 pub const Face = struct {
     ft_face: freetype.FT_Face,
     hb_font: *harfbuzz.hb_font_t,
@@ -89,7 +91,7 @@ pub const Face = struct {
         return .{
             .width = bitmap.width,
             .height = bitmap.rows,
-            .bitmap = try allocator.dupe(u8, bitmap.buffer[0..bitmap.rows * @abs(bitmap.pitch)]),
+            .bitmap = try allocator.dupe(u8, bitmap.buffer[0 .. bitmap.rows * @abs(bitmap.pitch)]),
         };
     }
 };

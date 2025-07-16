@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const build_options = @import("build_options");
 const Library = @import("Library.zig");
 const directwrite = @import("face/directwrite.zig");
 const freetype = @import("face/freetype.zig");
@@ -53,4 +54,4 @@ pub inline fn renderGlyph(self: Face, allocator: Allocator, glyph_index: u32) !G
 const Face = @This();
 
 // tood: use hasFreetype or smth idk
-pub const Impl = if (builtin.os.tag == .windows) directwrite.Face else freetype.Face;
+pub const Impl = if (build_options.font_backend == .Directwrite) directwrite.Face else freetype.Face;

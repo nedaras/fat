@@ -1,21 +1,8 @@
 const std = @import("std");
+const build_options = @import("build_options.zig");
 const libharfbuzz = @import("build/libharfbuzz.zig");
 
-const FontBackend = enum {
-    Directwrite,
-    Freetype,
-
-    pub fn default(target: std.Target) FontBackend {
-        return if (target.os.tag == .windows) .Directwrite else .Freetype;
-    }
-
-    pub fn hasFreetype(self: FontBackend) bool {
-        return switch (self) {
-            .Directwrite => false,
-            .Freetype => true,
-        };
-    }
-};
+const FontBackend = build_options.FontBackend;
 
 pub fn build(b: *std.Build) void {
     // todo: clean this shit up
@@ -28,11 +15,24 @@ pub fn build(b: *std.Build) void {
         "The font backend to use for discovery and rasterization.",
     ) orelse FontBackend.default(target.result);
 
+    const options_mod = b.createModule(.{
+        .root_source_file = b.path("build_options.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const options = b.addOptions();
+    options.addOption(FontBackend, "font_backend", font_backend);
+
+    options_mod.addOptions("build_options", options);
+
     const lib_mod = b.createModule(.{
         .root_source_file = b.path("src/lib_c.zig"),
         .target = target,
         .optimize = optimize,
     });
+
+    lib_mod.addImport("build_options", options_mod);
 
     const lib = b.addStaticLibrary(.{
         .name = "fat",
@@ -42,7 +42,7 @@ pub fn build(b: *std.Build) void {
     lib.linkLibC();
     lib.installHeader(b.path("include/fat.h"), "fat.h");
 
-    if (b.systemIntegrationOption("harfbuzz", .{ })) {
+    if (b.systemIntegrationOption("harfbuzz", .{})) {
         lib.linkSystemLibrary("harfbuzz");
     } else {
         const harfbuzz = libharfbuzz.buildLib(b, .{

@@ -14,8 +14,8 @@ pub const FT_GlyphSlot = *FT_GlyphSlotRec;
 pub const FT_Error = @import("FT_Error.zig").FT_Error;
 
 pub const FT_Library = *opaque {};
-pub const FT_CharMap  = *opaque{};
-pub const FT_Generic_Finalizer = *opaque{};
+pub const FT_CharMap = *opaque {};
+pub const FT_Generic_Finalizer = *opaque {};
 
 pub const FT_Glyph_Format = c_uint;
 
@@ -47,7 +47,6 @@ pub const LoadFlags = packed struct(i32) {
     no_svg: bool = false,
     _padding3: u7 = 0,
 };
-
 
 pub const FT_Generic = extern struct {
     data: ?*anyopaque,
@@ -94,7 +93,6 @@ const FT_FaceRec = extern struct {
     glyph: FT_GlyphSlot,
     // ...
 };
-
 
 pub const FT_Glyph_Metrics = extern struct {
     width: FT_Pos,
@@ -159,9 +157,7 @@ pub extern fn FT_Set_Char_Size(
     vert_resolution: FT_UInt,
 ) callconv(.C) FT_Error;
 
-
 pub extern fn FT_Select_Size(face: FT_Face, strike_index: FT_Int) callconv(.C) FT_Error;
-
 
 pub extern fn FT_Get_Char_Index(face: FT_Face, charcode: FT_ULong) callconv(.C) FT_UInt;
 
