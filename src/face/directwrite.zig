@@ -153,6 +153,7 @@ pub const Face = struct {
         try run_analysis.CreateAlphaTexture(.DWRITE_TEXTURE_CLEARTYPE_3x1, &bounds, bitmap);
 
         for (0..bitmap_len) |i| {
+            // todo: simd or check if compiler does it for us
             const r: f32 = @floatFromInt(bitmap[i * 3 + 0]);
             const g: f32 = @floatFromInt(bitmap[i * 3 + 1]);
             const b: f32 = @floatFromInt(bitmap[i * 3 + 2]);

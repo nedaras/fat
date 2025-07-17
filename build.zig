@@ -62,6 +62,10 @@ pub fn build(b: *std.Build) void {
         lib.linkSystemLibrary("freetype2");
     }
 
+    if (font_backend == .FontconfigFreetype) {
+        lib.linkSystemLibrary("fontconfig");
+    }
+
     b.installArtifact(lib);
 
     const exe_mod = b.createModule(.{

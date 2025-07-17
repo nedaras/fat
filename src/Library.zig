@@ -4,6 +4,7 @@ const build_options = @import("build_options");
 const windows = @import("windows.zig");
 const freetype = @import("freetype.zig");
 const Face = @import("Face.zig");
+const Collection = @import("Collection.zig");
 
 impl: Impl,
 
@@ -27,7 +28,16 @@ pub inline fn openFace(self: Library, sub_path: [:0]const u8, options: Face.Open
     return Face.openFace(self, sub_path, options);
 }
 
-pub const Impl = if (build_options.font_backend == .Directwrite) DWriteImpl else FreetypeImpl;
+pub inline fn openCollection(self: Library, descriptor: Collection.Descriptor) Collection.OpenError!Collection {
+    return Collection.open(self, descriptor);
+}
+
+pub const Impl = switch (build_options.font_backend) {
+    .Freetype,
+    .FontconfigFreetype => FreetypeImpl,
+
+    .Directwrite => DWriteImpl,
+};
 
 const DWriteImpl = struct {
     dw_factory: *windows.IDWriteFactory,

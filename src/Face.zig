@@ -53,5 +53,9 @@ pub inline fn renderGlyph(self: Face, allocator: Allocator, glyph_index: u32) !G
 
 const Face = @This();
 
-// tood: use hasFreetype or smth idk
-pub const Impl = if (build_options.font_backend == .Directwrite) directwrite.Face else freetype.Face;
+pub const Impl = switch (build_options.font_backend) {
+    .Freetype,
+    .FontconfigFreetype => freetype.Face,
+
+    .Directwrite => directwrite.Face,
+};

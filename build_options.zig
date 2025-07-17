@@ -6,15 +6,21 @@ pub const font_backend = std.meta.stringToEnum(FontBackend, @tagName(options.fon
 pub const FontBackend = enum {
     Directwrite,
     Freetype,
+    FontconfigFreetype,
 
     pub fn default(target: std.Target) FontBackend {
-        return if (target.os.tag == .windows) .Directwrite else .Freetype;
+        return if (target.os.tag == .windows) .Directwrite else .FontconfigFreetype;
     }
 
     pub fn hasFreetype(self: FontBackend) bool {
         return switch (self) {
+            .Freetype,
+            .FontconfigFreetype => true,
             .Directwrite => false,
-            .Freetype => true,
         };
+    }
+
+    pub fn hasDirectWrite(self: FontBackend) bool {
+        return self == .Directwrite;
     }
 };

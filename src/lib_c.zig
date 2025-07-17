@@ -63,6 +63,9 @@ export fn fat_open_face(clibrary: ?*Library, cface: ?**Face, sub_path: [*:0]cons
         };
     };
 
+    const col = lib.openCollection(.{ .codepoint = 0x0628 }) catch unreachable;
+    defer col.close();
+
     out.* = face;
     return fat_error_e.ok;
 }
