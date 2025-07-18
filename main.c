@@ -1,12 +1,14 @@
 #include <assert.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <fat.h>
 
 // asserts are removed in unsafe builds
 
 int main() {
-  library_t* lib = NULL;
-  face_t* face = NULL;
+  fat_library_t* lib = NULL;
+  fat_face_t* face = NULL;
+  fat_font_iterator_t* collection = NULL;
 
   fat_error_e err;
 
@@ -16,7 +18,7 @@ int main() {
     goto err;
   }
 
-  ft_face_options_t options = {0};
+  fat_face_options_t options = {0};
   options.size = 32.0;
   options.face_index = 0;
 
@@ -31,7 +33,7 @@ int main() {
 
   printf("idx: %d\n", idx);
 
-  ft_face_glyph_render_t glyph;
+  fat_face_glyph_render_t glyph;
   err = fat_face_render_glyph(face, idx, &glyph);
   if (err != fat_error_ok) {
     printf("fat_face_glyph_bbox failed: %s\n", fat_error_name(err));
@@ -40,14 +42,42 @@ int main() {
 
   printf("bounds: w=%d h=%d\n", glyph.width, glyph.height);
 
-  FILE* out = fopen("out.ppm", "wb");
-  assert(out != NULL);
+  //FILE* out = fopen("out.ppm", "wb");
+  //assert(out != NULL);
 
-  fprintf(out, "P5\n%d %d\n255\n", glyph.width, glyph.height);
-  fwrite(glyph.bitmap, 1, glyph.width * glyph.height, out);
+  //fprintf(out, "P5\n%d %d\n255\n", glyph.width, glyph.height);
+  //fwrite(glyph.bitmap, 1, glyph.width * glyph.height, out);
 
-  fclose(out);
+  //fclose(out);
 
+  fat_collection_descriptor_t descriptor = {0};
+  descriptor.size = 12.5;
+
+  err = fat_font_collection(lib, descriptor, &collection);
+  if (err != fat_error_ok) {
+    printf("fat_font_collection failed: %s\n", fat_error_name(err));
+    goto err;
+  }
+
+  while (true) {
+    fat_deferred_face_t* deffered_face = NULL;
+    err = fat_font_collection_next(collection, &deffered_face);
+    if (err != fat_error_ok) {
+      printf("fat_font_collection_next failed: %s\n", fat_error_name(err));
+      goto err;
+    }
+
+    if (deffered_face == NULL) {
+      break;
+    }
+
+    fat_face_info_t info = fat_deffered_face_query_info(deffered_face);
+    printf("path: '%s', size: %f\n", info.path, info.size);
+
+    fat_deffered_face_done(deffered_face);
+  }
+
+  fat_font_collection_done(collection);
   fat_face_glyph_render_done(glyph);
   fat_face_done(face);
   fat_library_done(lib);
@@ -55,6 +85,7 @@ int main() {
   return 0;
 
 err:
+  fat_font_collection_done(collection);
   fat_face_done(face);
   fat_library_done(lib);
 

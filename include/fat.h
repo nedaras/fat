@@ -4,17 +4,19 @@
 #include <stdint.h>
 
 #if defined(__APPLE__) && defined(__MACH__)
-    #define FT_FACE_DEFAULT_DPI 72
+    #define FAT_FACE_DEFAULT_DPI 72
 #else
-    #define FT_FACE_DEFAULT_DPI 96
+    #define FAT_FACE_DEFAULT_DPI 96
 #endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef void* library_t;
-typedef void* face_t;
+typedef struct fat_face_s fat_face_t;
+typedef struct fat_library_s fat_library_t;
+typedef struct fat_deferred_face_s fat_deferred_face_t;
+typedef struct fat_font_iterator_s fat_font_iterator_t;
 
 typedef enum {
   fat_error_ok,
@@ -26,41 +28,63 @@ typedef enum {
   fat_error_unexpected,
 } fat_error_e;
 
-struct ft_face_options_s {
+struct fat_face_options_s {
   float size;
   uint32_t face_index;
-} typedef ft_face_options_t;
+} typedef fat_face_options_t;
 
-struct ft_face_bbox_s {
+struct fat_face_bbox_s {
   uint32_t width;
   uint32_t height;
-} typedef ft_face_bbox_t;
+} typedef fat_face_bbox_t;
 
-struct ft_face_glyph_render_s {
+struct fat_face_glyph_render_s {
   uint32_t width;
   uint32_t height;
 
   uint8_t* bitmap;
-} typedef ft_face_glyph_render_t;
+} typedef fat_face_glyph_render_t;
+
+struct fat_face_info_s {
+  const char* path;
+  float size;
+} typedef fat_face_info_t;
+
+struct fat_collection_descriptor_s {
+  const char* family;
+  const char* style;
+  uint32_t codepoint;
+  float size;
+} typedef fat_collection_descriptor_t;
 
 const char* fat_error_name(fat_error_e err);
 
-fat_error_e fat_init_library(library_t** library);
+fat_error_e fat_init_library(fat_library_t** library);
 
-void fat_library_done(library_t* library);
+void fat_library_done(fat_library_t* library);
 
 // Open a new font face with the given file path.
-fat_error_e fat_open_face(library_t* library, face_t** face, const char* sub_path, ft_face_options_t options);
+fat_error_e fat_open_face(fat_library_t* library, fat_face_t** face, const char* sub_path, fat_face_options_t options);
 
-void fat_face_done(face_t* face);
+void fat_face_done(fat_face_t* face);
 
-fat_error_e fat_face_glyph_index(face_t* face, uint32_t codepoint, uint32_t* glyph_idex);
+fat_error_e fat_face_glyph_index(fat_face_t* face, uint32_t codepoint, uint32_t* glyph_idex);
 
-fat_error_e fat_face_glyph_bbox(face_t* face, uint32_t glyph_index, ft_face_bbox_t* bbox);
+fat_error_e fat_face_glyph_bbox(fat_face_t* face, uint32_t glyph_index, fat_face_bbox_t* bbox);
 
-fat_error_e fat_face_render_glyph(face_t* face, uint32_t glyph_index, ft_face_glyph_render_t* glyph);
+fat_error_e fat_face_render_glyph(fat_face_t* face, uint32_t glyph_index, fat_face_glyph_render_t* glyph);
 
-void fat_face_glyph_render_done(ft_face_glyph_render_t glyph);
+void fat_face_glyph_render_done(fat_face_glyph_render_t glyph);
+
+fat_error_e fat_font_collection(fat_library_t* library, fat_collection_descriptor_t descriptor, fat_font_iterator_t** font_iterator);
+
+void fat_font_collection_done(fat_font_iterator_t* font_iterator);
+
+fat_error_e fat_font_collection_next(fat_font_iterator_t* font_iterator, fat_deferred_face_t** deffered_face);
+
+void fat_deffered_face_done(fat_deferred_face_t* deffered_face);
+
+fat_face_info_t fat_deffered_face_query_info(fat_deferred_face_t* deffered_face);
 
 #ifdef __cplusplus
 }

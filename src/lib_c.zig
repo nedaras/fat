@@ -1,4 +1,5 @@
 const std = @import("std");
+const collection = @import("collection.zig");
 const Library = @import("Library.zig");
 const Face = @import("Face.zig");
 const mem = std.mem;
@@ -12,6 +13,11 @@ const fat_error_e = enum(c_int) {
     invalid_pointer,
     out_of_memory,
     unexpected,
+};
+
+const FaceInfo = extern struct {
+    path: [*:0]const u8,
+    size: f32,
 };
 
 export fn fat_error_name(err: c_int) [*:0]const u8 {
@@ -62,20 +68,6 @@ export fn fat_open_face(clibrary: ?*Library, cface: ?**Face, sub_path: [*:0]cons
             error.Unexpected => fat_error_e.unexpected,
         };
     };
-
-    // maybe just open iterator like lib.fontCollection(desc) -> iter
-    // and store config in lib like ?*config
-    var it = lib.fontCollection(.{ .codepoint = 0x4E2D }) catch unreachable;
-    defer it.deinit();
-
-    while (it.next() catch unreachable) |font| {
-        // I hate this type of iterators
-        defer font.deinit();
-
-        if (font.hasCodepoint(0x4E2D)) {
-            std.debug.print("path: {s}, size: {d}\n", .{font.path, font.size});
-        }
-    }
 
     out.* = face;
     return fat_error_e.ok;
@@ -136,4 +128,79 @@ export fn fat_face_glyph_render_done(cglyph: Face.GlyphRender.C) void {
     };
 
     glyph.deinit(c_allocator);
+}
+
+export fn fat_font_collection(o_library: ?*Library, descriptor: collection.Descriptor.C, o_font_iterator: ?**collection.FontIterator) fat_error_e {
+    const library = o_library orelse return fat_error_e.invalid_pointer;
+    const out_font_iterator = o_font_iterator orelse return fat_error_e.invalid_pointer;
+    const font_iterator = c_allocator.create(collection.FontIterator) catch return fat_error_e.out_of_memory;
+
+    font_iterator.* = library.fontCollection(.{
+        .family = if (descriptor.family) |f| std.mem.span(f) else null,
+        .style = if (descriptor.style) |s| std.mem.span(s) else null,
+        .size = descriptor.size,
+        .codepoint = @intCast(descriptor.codepoint),
+    }) catch |err| {
+        c_allocator.destroy(font_iterator);
+        return switch (err) {
+            error.OutOfMemory => fat_error_e.out_of_memory,
+            error.Unexpected => fat_error_e.unexpected,
+            error.MatchNotFound => fat_error_e.unexpected, // todo: idk seems this should never happen or atleast be handled by us
+        };
+    };
+
+    out_font_iterator.* = font_iterator;
+    return fat_error_e.ok;
+}
+
+export fn fat_font_collection_done(o_font_iterator: ?*collection.FontIterator) void {
+    const font_iterator = o_font_iterator orelse return;
+
+    font_iterator.deinit();
+    c_allocator.destroy(font_iterator);
+}
+
+// ugly af and we're allocating on null which is rly dumb
+// todo: im stoopid why should i even allocate result when i dont know if i even have the result
+export fn fat_font_collection_next(o_font_iterator: ?*collection.FontIterator, o_deffered_face: ?*?*collection.FontIterator.Font) fat_error_e {
+    const font_iterator = o_font_iterator orelse return fat_error_e.invalid_pointer;
+    const out_deffered_face = o_deffered_face orelse return fat_error_e.invalid_pointer;
+    const deffered_face = c_allocator.create(collection.FontIterator.Font) catch return fat_error_e.out_of_memory;
+
+    // if (try font_iterator.next()) |x| now we know we have `x` so we can allocate result
+    
+    deffered_face.* = font_iterator.next() catch |err| {
+        c_allocator.destroy(deffered_face);
+        return switch (err) {
+            error.OutOfMemory => fat_error_e.out_of_memory,
+            error.Unexpected => fat_error_e.unexpected,
+            error.MatchNotFound => fat_error_e.unexpected, // todo: idk seems this should never happen or atleast be handled by us
+        };
+    } orelse {
+        c_allocator.destroy(deffered_face);
+        out_deffered_face.* = null;
+        return fat_error_e.ok;
+    };
+
+    out_deffered_face.* = deffered_face;
+    return fat_error_e.ok;
+}
+
+export fn fat_deffered_face_done(o_deffered_face: ?*collection.FontIterator.Font) void {
+    const deffered_face = o_deffered_face orelse return;
+
+    deffered_face.deinit();
+    c_allocator.destroy(deffered_face);
+}
+
+export fn fat_deffered_face_query_info(o_deffered_face: ?*collection.FontIterator.Font) FaceInfo {
+    const deffered_face = o_deffered_face orelse return .{
+        .path = "",
+        .size = 0.0,
+    };
+
+    return .{
+        .path = deffered_face.path,
+        .size = deffered_face.size,
+    };
 }

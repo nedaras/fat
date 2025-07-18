@@ -23,12 +23,19 @@ pub const Descriptor = struct {
     style: ?[:0]const u8 = null,
 
     /// A codepoint that this font must be able to render.
-    codepoint: u21 = 0,
+    codepoint: u21 = 0, // todo: make it codepoints
 
     /// Font size in points that the font should support. For conversion
     /// to pixels, we will use 72 DPI for Mac and 96 DPI for everything else.
     /// (If pixel conversion is necessary, i.e. emoji fonts)
     size: f32 = 0.0,
+
+    pub const C = extern struct {
+        family: ?[*:0]const u8 = null,
+        style: ?[*:0]const u8 = null,
+        codepoint: u32 = 0,
+        size: f32 = 0.0,
+    };
 
     ///// True if we want to search specifically for a font that supports
     ///// specific styles.
