@@ -107,6 +107,7 @@ pub fn FT_Get_Char_Index(face: FT_Face, charcode: FT_ULong) ?FT_UInt {
 }
 
 pub const FTLoadGlyphError = error{
+    OutOfMemory,
     Unexpected,
 };
 
@@ -114,6 +115,7 @@ pub fn FT_Load_Glyph(face: FT_Face, glyph_index: FT_UInt, load_flags: LoadFlags)
     const err = abi.FT_Load_Glyph(face, glyph_index, load_flags);
     return switch (err) {
         .Ok => {},
+        .Out_Of_Memory => error.OutOfMemory,
         else => unexpectedError(err),
     };
 }

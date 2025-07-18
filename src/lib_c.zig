@@ -93,6 +93,7 @@ export fn fat_face_glyph_bbox(cface: ?*Face, glyph_index: u32, o_bbox: ?*Face.Gl
     const bbox = o_bbox orelse return fat_error_e.invalid_pointer;
 
     const box = face.glyphBoundingBox(glyph_index) catch |err| return switch (err) {
+        error.OutOfMemory => fat_error_e.out_of_memory,
         error.Unexpected => fat_error_e.unexpected,
     };
 

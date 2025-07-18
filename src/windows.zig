@@ -134,6 +134,26 @@ pub const IDWriteFactory = extern struct {
         IUnknown.Release(@ptrCast(self));
     }
 
+    pub const GetSystemFontCollectionError = error{
+        OutOfMemory,
+        Unexpected,
+    };
+
+    pub fn GetSystemFontCollection(self: *IDWriteFactory, checkForUpdates: bool) GetSystemFontCollectionError!*IDWriteFontCollection {
+        const FnType = fn (*IDWriteFactory, **IDWriteFontCollection, BOOL) callconv(WINAPI) HRESULT;
+        const get_system_font_collection: *const FnType = @ptrCast(self.vtable[3]);
+
+        var fontCollection: *IDWriteFontCollection = undefined;
+
+        const hr = get_system_font_collection(self, &fontCollection, @intFromBool(checkForUpdates));
+        return switch (hr) {
+            windows.S_OK => fontCollection,
+            windows.E_OUTOFMEMORY => error.OutOfMemory,
+            windows.E_POINTER => unreachable,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
+
     pub const CreateFontFileReferenceError = error{
         FontNotFound,
         AccessDenied,
@@ -189,6 +209,7 @@ pub const IDWriteFactory = extern struct {
     }
 
     pub const CreateGlyphRunAnalysisError = error{
+        OutOfMemory,
         Unexpected,
     };
 
@@ -210,6 +231,8 @@ pub const IDWriteFactory = extern struct {
         const hr = create_glyph_run_analysis(self, glyphRun, pixelsPerDip, transform, renderingMode, measuringMode, baselineOriginX, baselineOriginY, &glyphRunAnalysis);
         return switch (hr) {
             windows.S_OK => glyphRunAnalysis,
+            windows.E_OUTOFMEMORY => error.OutOfMemory,
+            windows.E_POINTER => unreachable,
             else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
         };
     }
@@ -305,6 +328,21 @@ pub const IDWriteGlyphRunAnalysis = extern struct {
             windows.S_OK => {},
             else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
         };
+    }
+};
+
+pub const IDWriteFontCollection = extern struct {
+    vtable: [*]const *const anyopaque,
+
+    pub inline fn Release(self: *IDWriteFontCollection) void {
+        IUnknown.Release(@ptrCast(self));
+    }
+
+    pub inline fn GetFontFamilyCount(self: *IDWriteFontCollection) UINT32 {
+        const FnType = fn (*IDWriteFontCollection) callconv(WINAPI) UINT32;
+        const get_font_family_count: *const FnType = @ptrCast(self.vtable[3]);
+
+        return get_font_family_count(self);
     }
 };
 

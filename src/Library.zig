@@ -6,11 +6,17 @@ const freetype = @import("freetype.zig");
 const fontconfig = @import("fontconfig.zig");
 const collection = @import("collection.zig");
 const Face = @import("Face.zig");
+const font_backend = build_options.font_backend;
+
+// there is lit no point to have multiple Impl for Library
+// as we can have both say freetype for faces and dwrite for fallbacks
+// so its best to have like `dw_factory` `ft_library` `fc_condif` `ct_smth` and set unsued ones to voids
+// and we should set them all to null like `fc_config` below and only init when we need to to.
 
 impl: Impl,
 
-fc_config: if (build_options.font_backend.hasFontConfig()) ?*fontconfig.FcConfig else void =
-    if (build_options.font_backend.hasFontConfig()) null else {},
+fc_config: if (font_backend.hasFontConfig()) ?*fontconfig.FcConfig else void =
+    if (font_backend.hasFontConfig()) null else {},
 
 const Library = @This();
 
@@ -24,7 +30,7 @@ pub fn init() InitError!Library {
 }
 
 pub fn deinit(self: *Library) void {
-    if (build_options.font_backend.hasFontConfig()) {
+    if (font_backend.hasFontConfig()) {
         if (self.fc_config) |fc_config| {
             fontconfig.FcConfigDestroy(fc_config);
         }
@@ -38,7 +44,7 @@ pub inline fn openFace(self: *const Library, sub_path: [:0]const u8, options: Fa
 }
 
 pub inline fn fontCollection(self: *Library, descriptor: collection.Descriptor) !collection.GenericFontIterator {
-    if (build_options.font_backend.hasFontConfig()) {
+    if (font_backend.hasFontConfig()) {
         if (self.fc_config == null) {
             self.fc_config = try fontconfig.FcInitLoadConfigAndFonts();
         }
@@ -47,7 +53,7 @@ pub inline fn fontCollection(self: *Library, descriptor: collection.Descriptor) 
     return collection.initIterator(self.*, descriptor);
 }
 
-pub const Impl = switch (build_options.font_backend) {
+pub const Impl = switch (font_backend) {
     .Freetype, .FontconfigFreetype => FreetypeImpl,
 
     .Directwrite => DWriteImpl,

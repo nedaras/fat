@@ -1,7 +1,8 @@
 const std = @import("std");
 const build_options = @import("build_options");
-const Library = @import("Library.zig");
+const windows = @import("windows.zig");
 const fontconfig = @import("fontconfig.zig");
+const Library = @import("Library.zig");
 
 /// Descriptor is used to search for fonts. The only required field
 /// is "family". The rest are ignored unless they're set to a non-zero
@@ -161,13 +162,24 @@ pub const FontConfig = struct {
 
 pub const DirectWrite = struct {
     pub fn initIterator(library: Library, descriptor: Descriptor) InitError!FontIterator {
-        _ = library;
         _ = descriptor;
-        return .{};
+
+        const dw_font_collection = try library.impl.dw_factory.GetSystemFontCollection(false);
+        errdefer dw_font_collection.Release();
+
+        const count = dw_font_collection.GetFontFamilyCount();
+        std.debug.print("c: {d}\n", .{count});
+
+        return .{
+            .dw_font_collection = dw_font_collection,
+        };
     }
 
     pub const FontIterator = struct {
+        dw_font_collection: *windows.IDWriteFontCollection,
+
         pub const Font = struct {
+
             path: [:0]const u8,
             size: f32,
 
@@ -188,7 +200,7 @@ pub const DirectWrite = struct {
         }
 
         pub fn deinit(self: FontIterator) void {
-            _ = self;
+            self.dw_font_collection.Release();
         }
     };
 };
