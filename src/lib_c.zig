@@ -5,7 +5,7 @@ const mem = std.mem;
 const c_allocator = std.heap.c_allocator;
 
 const fat_error_e = enum(c_int) {
-    ok = 0,
+    ok,
     failed_to_open,
     not_supported,
     invalid_wtf_8,
@@ -63,8 +63,19 @@ export fn fat_open_face(clibrary: ?*Library, cface: ?**Face, sub_path: [*:0]cons
         };
     };
 
-    const col = lib.openCollection(.{ .codepoint = 0x0628 }) catch unreachable;
-    defer col.close();
+    // maybe just open iterator like lib.fontCollection(desc) -> iter
+    // and store config in lib like ?*config
+    var it = lib.fontCollection(.{ .codepoint = 0x4E2D }) catch unreachable;
+    defer it.deinit();
+
+    while (it.next() catch unreachable) |font| {
+        // I hate this type of iterators
+        defer font.deinit();
+
+        if (font.hasCodepoint(0x4E2D)) {
+            std.debug.print("path: {s}, size: {d}\n", .{font.path, font.size});
+        }
+    }
 
     out.* = face;
     return fat_error_e.ok;

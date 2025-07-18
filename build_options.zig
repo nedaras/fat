@@ -23,4 +23,8 @@ pub const FontBackend = enum {
     pub fn hasDirectWrite(self: FontBackend) bool {
         return self == .Directwrite;
     }
+
+    pub fn hasFontconfig(self: FontBackend) bool {
+        return self == .FontconfigFreetype;
+    }
 };

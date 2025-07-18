@@ -54,11 +54,15 @@ pub inline fn FcPatternDestroy(p: *FcPattern) void {
 }
 
 pub inline fn FcPatternAddCharSet(p: *FcPattern, object: [:0]const u8, c: *const FcCharSet) void {
-    assert(abi.FcPatternAddCharSet(p, object.ptr, c) == abi.FcTrue);
+    assert(abi.FcPatternAddCharSet(p, object, c) == abi.FcTrue);
 }
 
 pub inline fn FcPatternAddString(p: *FcPattern, object: [:0]const u8, s: [:0]const u8) void {
-    assert(abi.FcPatternAddString(p, object.ptr, s.ptr) == abi.FcTrue);
+    assert(abi.FcPatternAddString(p, object, s) == abi.FcTrue);
+}
+
+pub inline fn FcPatternAddDouble(p: *FcPattern, object: [:0]const u8, d: f64) void {
+    assert(abi.FcPatternAddDouble(p, object.ptr, d) == abi.FcTrue);
 }
 
 pub inline fn FcCharSetCreate() Error!*FcCharSet{ 
@@ -135,6 +139,22 @@ pub fn FcPatternGetString(p: *const FcPattern, object: [:0]const u8, n: c_int) F
     const result: FcResult = @enumFromInt(abi.FcPatternGetString(p, object, n, @ptrCast(&s)));
     return switch (result) {
         .FcResultMatch => std.mem.span(s),
+        .FcResultNoMatch => error.MatchNotFound,
+        else => error.Unexpected,
+    };
+}
+
+pub const FcPatternGetDoubleError = error{
+    MatchNotFound,
+    Unexpected,
+};
+
+pub fn FcPatternGetDouble(p: *const FcPattern, object: [:0]const u8, n: c_int) FcPatternGetStringError!f64 {
+    var d: f64 = undefined;
+
+    const result: FcResult = @enumFromInt(abi.FcPatternGetDouble(p, object, n, &d));
+    return switch (result) {
+        .FcResultMatch => d,
         .FcResultNoMatch => error.MatchNotFound,
         else => error.Unexpected,
     };

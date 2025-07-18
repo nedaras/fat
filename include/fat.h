@@ -17,7 +17,7 @@ typedef void* library_t;
 typedef void* face_t;
 
 typedef enum {
-  fat_error_ok = 0,
+  fat_error_ok,
   fat_error_failed_to_open,
   fat_error_not_supported,
   fat_error_invalid_wtf_8,

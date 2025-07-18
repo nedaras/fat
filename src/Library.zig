@@ -3,10 +3,14 @@ const builtin = @import("builtin");
 const build_options = @import("build_options");
 const windows = @import("windows.zig");
 const freetype = @import("freetype.zig");
+const fontconfig = @import("fontconfig.zig");
+const collection = @import("collection.zig");
 const Face = @import("Face.zig");
-const Collection = @import("Collection.zig");
 
 impl: Impl,
+
+fc_config: if (build_options.font_backend.hasFontconfig()) ?*fontconfig.FcConfig else void =
+    if (build_options.font_backend.hasFontconfig()) null else {},
 
 const Library = @This();
 
@@ -20,16 +24,27 @@ pub fn init() InitError!Library {
 }
 
 pub fn deinit(self: *Library) void {
+    if (build_options.font_backend.hasFontconfig()) {
+        if (self.fc_config) |fc_config| {
+            fontconfig.FcConfigDestroy(fc_config);
+        }
+    }
     self.impl.deinit();
     self.* = undefined;
 }
 
-pub inline fn openFace(self: Library, sub_path: [:0]const u8, options: Face.OpenFaceOptions) !Face {
-    return Face.openFace(self, sub_path, options);
+pub inline fn openFace(self: *const Library, sub_path: [:0]const u8, options: Face.OpenFaceOptions) !Face {
+    return Face.openFace(self.*, sub_path, options);
 }
 
-pub inline fn openCollection(self: Library, descriptor: Collection.Descriptor) Collection.OpenError!Collection {
-    return Collection.open(self, descriptor);
+pub inline fn fontCollection(self: *Library, descriptor: collection.Descriptor) !collection.FontIterator {
+    if (build_options.font_backend.hasFontconfig()) {
+        if (self.fc_config == null) {
+            self.fc_config = try fontconfig.FcInitLoadConfigAndFonts();
+        }
+    }
+
+    return collection.initIterator(self.*, descriptor);
 }
 
 pub const Impl = switch (build_options.font_backend) {
@@ -56,7 +71,7 @@ const DWriteImpl = struct {
         };
     }
 
-    pub fn deinit(self: *DWriteImpl) void {
+    pub fn deinit(self: DWriteImpl) void {
         self.dw_factory.Release();
     }
 };
@@ -73,7 +88,7 @@ const FreetypeImpl = struct {
         };
     }
 
-    pub fn deinit(self: *FreetypeImpl) void {
+    pub fn deinit(self: FreetypeImpl) void {
         freetype.FT_Done_FreeType(self.ft_library);
     }
 };
