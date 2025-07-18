@@ -54,8 +54,7 @@ pub inline fn renderGlyph(self: Face, allocator: Allocator, glyph_index: u32) !G
 const Face = @This();
 
 pub const Impl = switch (build_options.font_backend) {
-    .Freetype,
-    .FontconfigFreetype => freetype.Face,
+    .Freetype, .FontconfigFreetype => freetype.Face,
 
     .Directwrite => directwrite.Face,
 };

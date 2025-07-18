@@ -9,8 +9,8 @@ const Face = @import("Face.zig");
 
 impl: Impl,
 
-fc_config: if (build_options.font_backend.hasFontconfig()) ?*fontconfig.FcConfig else void =
-    if (build_options.font_backend.hasFontconfig()) null else {},
+fc_config: if (build_options.font_backend.hasFontConfig()) ?*fontconfig.FcConfig else void =
+    if (build_options.font_backend.hasFontConfig()) null else {},
 
 const Library = @This();
 
@@ -24,7 +24,7 @@ pub fn init() InitError!Library {
 }
 
 pub fn deinit(self: *Library) void {
-    if (build_options.font_backend.hasFontconfig()) {
+    if (build_options.font_backend.hasFontConfig()) {
         if (self.fc_config) |fc_config| {
             fontconfig.FcConfigDestroy(fc_config);
         }
@@ -37,8 +37,8 @@ pub inline fn openFace(self: *const Library, sub_path: [:0]const u8, options: Fa
     return Face.openFace(self.*, sub_path, options);
 }
 
-pub inline fn fontCollection(self: *Library, descriptor: collection.Descriptor) !collection.FontIterator {
-    if (build_options.font_backend.hasFontconfig()) {
+pub inline fn fontCollection(self: *Library, descriptor: collection.Descriptor) !collection.GenericFontIterator {
+    if (build_options.font_backend.hasFontConfig()) {
         if (self.fc_config == null) {
             self.fc_config = try fontconfig.FcInitLoadConfigAndFonts();
         }
@@ -48,8 +48,7 @@ pub inline fn fontCollection(self: *Library, descriptor: collection.Descriptor) 
 }
 
 pub const Impl = switch (build_options.font_backend) {
-    .Freetype,
-    .FontconfigFreetype => FreetypeImpl,
+    .Freetype, .FontconfigFreetype => FreetypeImpl,
 
     .Directwrite => DWriteImpl,
 };

@@ -1,4 +1,5 @@
 const std = @import("std");
+const build_options = @import("build_options");
 const assert = std.debug.assert;
 
 const abi = @cImport({
@@ -22,15 +23,7 @@ pub const FcMatchKind = enum(c_uint) {
     FcMatchScan,
 };
 
-
-pub const FcResult = enum(c_uint) {
-    FcResultMatch,
-    FcResultNoMatch,
-    FcResultTypeMismatch,
-    FcResultNoId,
-    FcResultOutOfMemory,
-    _
-};
+pub const FcResult = enum(c_uint) { FcResultMatch, FcResultNoMatch, FcResultTypeMismatch, FcResultNoId, FcResultOutOfMemory, _ };
 
 // kinda sucks when we dont have info to errors
 pub const Error = error{
@@ -65,7 +58,7 @@ pub inline fn FcPatternAddDouble(p: *FcPattern, object: [:0]const u8, d: f64) vo
     assert(abi.FcPatternAddDouble(p, object.ptr, d) == abi.FcTrue);
 }
 
-pub inline fn FcCharSetCreate() Error!*FcCharSet{ 
+pub inline fn FcCharSetCreate() Error!*FcCharSet {
     return abi.FcCharSetCreate() orelse error.OutOfMemory;
 }
 

@@ -6,8 +6,7 @@ const windows = @import("windows.zig");
 const c = @cImport({
     @cInclude("hb.h");
     switch (build_options.font_backend) {
-        .Freetype,
-        .FontconfigFreetype => @cInclude("hb-ft.h"),
+        .Freetype, .FontconfigFreetype => @cInclude("hb-ft.h"),
 
         .Directwrite => @cInclude("hb-directwrite.h"),
     }

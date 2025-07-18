@@ -12,7 +12,7 @@ pub const FontBackend = enum {
         return if (target.os.tag == .windows) .Directwrite else .FontconfigFreetype;
     }
 
-    pub fn hasFreetype(self: FontBackend) bool {
+    pub inline fn hasFreetype(self: FontBackend) bool {
         return switch (self) {
             .Freetype,
             .FontconfigFreetype => true,
@@ -20,11 +20,11 @@ pub const FontBackend = enum {
         };
     }
 
-    pub fn hasDirectWrite(self: FontBackend) bool {
+    pub inline fn hasDirectWrite(self: FontBackend) bool {
         return self == .Directwrite;
     }
 
-    pub fn hasFontconfig(self: FontBackend) bool {
+    pub inline fn hasFontConfig(self: FontBackend) bool {
         return self == .FontconfigFreetype;
     }
 };

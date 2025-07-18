@@ -13,6 +13,8 @@
 extern "C" {
 #endif
 
+// now we're allocating these structs cuz im lazy to handle diffrent backends in c
+// as these structs change based on that
 typedef struct fat_face_s fat_face_t;
 typedef struct fat_library_s fat_library_t;
 typedef struct fat_deferred_face_s fat_deferred_face_t;

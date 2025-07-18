@@ -1,4 +1,5 @@
 const std = @import("std");
+const build_options = @import("build_options");
 const Library = @import("Library.zig");
 const fontconfig = @import("fontconfig.zig");
 
@@ -50,93 +51,178 @@ pub const InitError = error{
     Unexpected,
 };
 
-pub fn initIterator(library: Library, descriptor: Descriptor) InitError!FontIterator {
-    const fc_pattern = try fontconfig.FcPatternCreate();
-    errdefer fontconfig.FcPatternDestroy(fc_pattern);
-    
-    if (descriptor.family) |family| {
-        fontconfig.FcPatternAddString(fc_pattern, "falimy", family);
-    }
+// todo: remove this this is b shit
+pub const GenericFontIterator = switch (build_options.font_backend) {
+    .FontconfigFreetype => FontConfig.FontIterator,
+    .Directwrite => DirectWrite.FontIterator,
+    .Freetype => Noop.FontIterator,
+};
 
-    if (descriptor.style) |style| {
-        fontconfig.FcPatternAddString(fc_pattern, "style", style);
-    }
-
-    if (descriptor.codepoint != 0) {
-        const charset = try fontconfig.FcCharSetCreate();
-        defer fontconfig.FcCharSetDestroy(charset);
-
-        fontconfig.FcCharSetAddChar(charset, descriptor.codepoint);
-        fontconfig.FcPatternAddCharSet(fc_pattern, "charset", charset);
-    }
-
-    if (descriptor.size != 0.0) {
-        fontconfig.FcPatternAddDouble(fc_pattern, "size", descriptor.size);
-    }
-
-    fontconfig.FcConfigSubstitute(library.fc_config.?, fc_pattern, .FcMatchPattern);
-    fontconfig.FcDefaultSubstitute(fc_pattern);
-
-    const fc_font_set = try fontconfig.FcFontSort(library.fc_config.?, fc_pattern, false, null);
-    errdefer fontconfig.FcFontSetDestroy(fc_font_set);
-
-    return .{
-        .fc_config = library.fc_config.?,
-        .fc_pattern = fc_pattern,
-        .fc_font_set = fc_font_set,
-        .idx = 0,
+pub inline fn initIterator(library: Library, descriptor: Descriptor) InitError!GenericFontIterator {
+    return switch (build_options.font_backend) {
+        .FontconfigFreetype => FontConfig.initIterator(library, descriptor),
+        .Directwrite => DirectWrite.initIterator(library, descriptor),
+        .Freetype => Noop.initIterator(library, descriptor),
     };
 }
 
-pub const FontIterator = struct {
-    fc_config: *fontconfig.FcConfig,
-    fc_pattern: *fontconfig.FcPattern,
-    fc_font_set: *fontconfig.FcFontSet,
-
-    idx: c_uint,
-
-    pub const Font = struct {
-        fc_pattern: *fontconfig.FcPattern,
-        fc_charset: *const fontconfig.FcCharSet,
-
-        path: [:0]const u8,
-        size: f32,
-
-        pub fn deinit(self: Font) void {
-            fontconfig.FcPatternDestroy(self.fc_pattern);
-        }
-
-        pub inline fn hasCodepoint(self: Font, codepoint: u21) bool {
-            return fontconfig.FcCharSetHasChar(self.fc_charset, codepoint);
-        }
-    };
-
-    pub fn next(self: *FontIterator) !?Font {
-        if (self.idx == self.fc_font_set.nfont) {
-            return null;
-        }
-
-        defer self.idx += 1;
-
-        const fc_pattern = try fontconfig.FcFontRenderPrepare(self.fc_config, self.fc_pattern, self.fc_font_set.fonts[self.idx].?);
+pub const FontConfig = struct {
+    pub fn initIterator(library: Library, descriptor: Descriptor) InitError!FontIterator {
+        const fc_pattern = try fontconfig.FcPatternCreate();
         errdefer fontconfig.FcPatternDestroy(fc_pattern);
 
-        const fc_charset = try fontconfig.FcPatternGetCharSet(fc_pattern, "charset", 0);
+        if (descriptor.family) |family| {
+            fontconfig.FcPatternAddString(fc_pattern, "falimy", family);
+        }
 
-        const file = try fontconfig.FcPatternGetString(fc_pattern, "file", 0);
-        const size = try fontconfig.FcPatternGetDouble(fc_pattern, "size", 0);
+        if (descriptor.style) |style| {
+            fontconfig.FcPatternAddString(fc_pattern, "style", style);
+        }
+
+        if (descriptor.codepoint != 0) {
+            const charset = try fontconfig.FcCharSetCreate();
+            defer fontconfig.FcCharSetDestroy(charset);
+
+            fontconfig.FcCharSetAddChar(charset, descriptor.codepoint);
+            fontconfig.FcPatternAddCharSet(fc_pattern, "charset", charset);
+        }
+
+        if (descriptor.size != 0.0) {
+            fontconfig.FcPatternAddDouble(fc_pattern, "size", descriptor.size);
+        }
+
+        fontconfig.FcConfigSubstitute(library.fc_config.?, fc_pattern, .FcMatchPattern);
+        fontconfig.FcDefaultSubstitute(fc_pattern);
+
+        const fc_font_set = try fontconfig.FcFontSort(library.fc_config.?, fc_pattern, false, null);
+        errdefer fontconfig.FcFontSetDestroy(fc_font_set);
 
         return .{
+            .fc_config = library.fc_config.?,
             .fc_pattern = fc_pattern,
-            .fc_charset = fc_charset,
-
-            .path = file,
-            .size = @floatCast(size),
+            .fc_font_set = fc_font_set,
+            .idx = 0,
         };
     }
 
-    pub fn deinit(self: FontIterator) void {
-        fontconfig.FcFontSetDestroy(self.fc_font_set);
-        fontconfig.FcPatternDestroy(self.fc_pattern);
+    pub const FontIterator = struct {
+        fc_config: *fontconfig.FcConfig,
+        fc_pattern: *fontconfig.FcPattern,
+        fc_font_set: *fontconfig.FcFontSet,
+
+        idx: c_uint,
+
+        pub const Font = struct {
+            fc_pattern: *fontconfig.FcPattern,
+            fc_charset: *const fontconfig.FcCharSet,
+
+            path: [:0]const u8,
+            size: f32,
+
+            pub fn deinit(self: Font) void {
+                fontconfig.FcPatternDestroy(self.fc_pattern);
+            }
+
+            pub inline fn hasCodepoint(self: Font, codepoint: u21) bool {
+                return fontconfig.FcCharSetHasChar(self.fc_charset, codepoint);
+            }
+        };
+
+        pub fn next(self: *FontIterator) !?Font {
+            if (self.idx == self.fc_font_set.nfont) {
+                return null;
+            }
+
+            defer self.idx += 1;
+
+            const fc_pattern = try fontconfig.FcFontRenderPrepare(self.fc_config, self.fc_pattern, self.fc_font_set.fonts[self.idx].?);
+            errdefer fontconfig.FcPatternDestroy(fc_pattern);
+
+            const fc_charset = try fontconfig.FcPatternGetCharSet(fc_pattern, "charset", 0);
+
+            const file = try fontconfig.FcPatternGetString(fc_pattern, "file", 0);
+            const size = try fontconfig.FcPatternGetDouble(fc_pattern, "size", 0);
+
+            return .{
+                .fc_pattern = fc_pattern,
+                .fc_charset = fc_charset,
+
+                .path = file,
+                .size = @floatCast(size),
+            };
+        }
+
+        pub fn deinit(self: FontIterator) void {
+            fontconfig.FcFontSetDestroy(self.fc_font_set);
+            fontconfig.FcPatternDestroy(self.fc_pattern);
+        }
+    };
+};
+
+pub const DirectWrite = struct {
+    pub fn initIterator(library: Library, descriptor: Descriptor) InitError!FontIterator {
+        _ = library;
+        _ = descriptor;
+        return .{};
     }
+
+    pub const FontIterator = struct {
+        pub const Font = struct {
+            path: [:0]const u8,
+            size: f32,
+
+            pub fn deinit(self: Font) void {
+                _ = self;
+            }
+
+            pub inline fn hasCodepoint(self: Font, codepoint: u21) bool {
+                _ = self;
+                _ = codepoint;
+                return false;
+            }
+        };
+
+        pub fn next(self: *FontIterator) !?Font {
+            _ = self;
+            return null;
+        }
+
+        pub fn deinit(self: FontIterator) void {
+            _ = self;
+        }
+    };
+};
+
+pub const Noop = struct {
+    pub fn initIterator(library: Library, descriptor: Descriptor) InitError!FontIterator {
+        _ = library;
+        _ = descriptor;
+        return .{};
+    }
+
+    pub const FontIterator = struct {
+        pub const Font = struct {
+            path: [:0]const u8,
+            size: f32,
+
+            pub fn deinit(self: Font) void {
+                _ = self;
+            }
+
+            pub inline fn hasCodepoint(self: Font, codepoint: u21) bool {
+                _ = self;
+                _ = codepoint;
+                return false;
+            }
+        };
+
+        pub fn next(self: *FontIterator) !?Font {
+            _ = self;
+            return null;
+        }
+
+        pub fn deinit(self: FontIterator) void {
+            _ = self;
+        }
+    };
 };
