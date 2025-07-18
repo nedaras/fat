@@ -91,7 +91,7 @@ pub const DWRITE_GLYPH_RUN = extern struct {
 pub const IUnknown = extern struct {
     vtable: *const IUnknownVTable,
 
-    pub const UUID = &GUID.parse("00000000-0000-0000-C000-000000000046{}");
+    pub const UUID = &GUID.parse("{00000000-0000-0000-C000-000000000046}");
 
     pub const QueryInterfaceError = error{
         InterfaceNotFound,
@@ -343,6 +343,71 @@ pub const IDWriteFontCollection = extern struct {
         const get_font_family_count: *const FnType = @ptrCast(self.vtable[3]);
 
         return get_font_family_count(self);
+    }
+
+    pub const GetFontFamilyError = error{
+        OutOfMemory,
+        Unexpected,
+    };
+
+    pub fn GetFontFamily(self: *IDWriteFontCollection, index: UINT32) GetFontFamilyError!*IDWriteFontFamily {
+        const FnType = fn (*IDWriteFontCollection, UINT32, **IDWriteFontFamily) callconv(WINAPI) HRESULT;
+        const get_font_family: *const FnType = @ptrCast(self.vtable[4]);
+
+        var fontFamily: *IDWriteFontFamily = undefined;
+
+        const hr = get_font_family(self, index, &fontFamily);
+        return switch (hr) {
+            windows.S_OK => fontFamily,
+            windows.E_OUTOFMEMORY => error.OutOfMemory,
+            windows.E_POINTER => unreachable,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
+};
+
+
+pub const IDWriteFontFamily = extern struct {
+    vtable: [*]const *const anyopaque,
+
+
+    pub inline fn QueryInterface(self: *IDWriteFontFamily, riid: REFIID, ppvObject: **anyopaque) IUnknown.QueryInterfaceError!void {
+        return IUnknown.QueryInterface(@ptrCast(self), riid, ppvObject);
+    }
+
+    pub inline fn Release(self: *IDWriteFontFamily) void {
+        IUnknown.Release(@ptrCast(self));
+    }
+};
+
+pub const IDWriteFontList = extern struct {
+    vtable: *const IDWriteFontListVTable,
+
+    pub const UUID = &GUID.parse("{1a0d8438-1d97-4ec1-aef9-a2fb86ed6acb}");
+
+    pub inline fn Release(self: *IDWriteFontList) void {
+        return IUnknown.Release(@ptrCast(self));
+    }
+
+    pub inline fn GetFontCount(self: *IDWriteFontList) UINT32 {
+        return self.vtable.GetFontCount(self);
+    }
+};
+
+const IDWriteFontListVTable = extern struct {
+    QueryInterface: *const fn (self: *IDWriteFontList, riid: REFIID, ppvObject: **anyopaque) callconv(WINAPI) HRESULT,
+    AddRef: *const fn (*IDWriteFontList) callconv(WINAPI) ULONG,
+    Release: *const fn (*IDWriteFontList) callconv(WINAPI) ULONG,
+    GetFontCollection: *const fn (*IDWriteFontList, fontCollection: **IDWriteFontCollection) callconv(WINAPI) HRESULT,
+    GetFontCount: *const fn (*IDWriteFontList) callconv(WINAPI) UINT32,
+    GetFont: *const fn (*IDWriteFontList, index: UINT32, font: **IDWriteFont) callconv(WINAPI) HRESULT,
+};
+
+pub const IDWriteFont = extern struct {
+    vtable: [*]const *const anyopaque,
+
+    pub inline fn Release(self: *IDWriteFont) void {
+        IUnknown.Release(@ptrCast(self));
     }
 };
 
