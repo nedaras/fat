@@ -390,7 +390,7 @@ pub const DirectWrite = struct {
             const family = std.mem.span(ptr);
 
             // cuz these slices are aligned to u16 so yea
-            self.family_names_idx += family.len + @mod(family.len, 2);
+            self.family_names_idx += (family.len + 1) + @mod((family.len + 1), 2);
 
             return .{
                 .family = family,
