@@ -16,7 +16,7 @@ const fat_error_e = enum(c_int) {
 };
 
 const FaceInfo = extern struct {
-    path: [*:0]const u8,
+    family: [*:0]const u8,
     size: f32,
 };
 
@@ -196,12 +196,12 @@ export fn fat_deffered_face_done(o_deffered_face: ?*collection.GenericFontIterat
 
 export fn fat_deffered_face_query_info(o_deffered_face: ?*collection.GenericFontIterator.Font) FaceInfo {
     const deffered_face = o_deffered_face orelse return .{
-        .path = "",
+        .family = "",
         .size = 0.0,
     };
 
     return .{
-        .path = deffered_face.path,
+        .family = deffered_face.family,
         .size = deffered_face.size,
     };
 }

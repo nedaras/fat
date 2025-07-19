@@ -119,7 +119,7 @@ pub const FontConfig = struct {
             fc_pattern: *fontconfig.FcPattern,
             fc_charset: *const fontconfig.FcCharSet,
 
-            path: [:0]const u8,
+            family: [:0]const u8,
             size: f32,
 
             pub fn deinit(self: Font) void {
@@ -143,14 +143,14 @@ pub const FontConfig = struct {
 
             const fc_charset = try fontconfig.FcPatternGetCharSet(fc_pattern, "charset", 0);
 
-            const file = try fontconfig.FcPatternGetString(fc_pattern, "file", 0);
+            const family = try fontconfig.FcPatternGetString(fc_pattern, "family", 0);
             const size = try fontconfig.FcPatternGetDouble(fc_pattern, "size", 0);
 
             return .{
                 .fc_pattern = fc_pattern,
                 .fc_charset = fc_charset,
 
-                .path = file,
+                .family = family,
                 .size = @floatCast(size),
             };
         }
@@ -201,7 +201,7 @@ pub const DirectWrite = struct {
             const name = wbuf[0..wstr_len:0];
             try names.GetString(idx, name);
 
-            std.debug.print("n: {d}, {}\n", .{idx, unicode.fmtUtf16Le(name)});
+            std.debug.print("{}\n", .{unicode.fmtUtf16Le(name)});
         }
 
         return .{
@@ -214,7 +214,7 @@ pub const DirectWrite = struct {
 
         pub const Font = struct {
 
-            path: [:0]const u8,
+            family: [:0]const u8,
             size: f32,
 
             pub fn deinit(self: Font) void {
@@ -248,7 +248,7 @@ pub const Noop = struct {
 
     pub const FontIterator = struct {
         pub const Font = struct {
-            path: [:0]const u8,
+            family: [:0]const u8,
             size: f32,
 
             pub fn deinit(self: Font) void {

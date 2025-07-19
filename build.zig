@@ -1,6 +1,5 @@
 const std = @import("std");
 const build_options = @import("build_options.zig");
-const libharfbuzz = @import("build/libharfbuzz.zig");
 
 const FontBackend = build_options.FontBackend;
 
@@ -41,18 +40,6 @@ pub fn build(b: *std.Build) void {
 
     lib.linkLibC();
     lib.installHeader(b.path("include/fat.h"), "fat.h");
-
-    if (b.systemIntegrationOption("harfbuzz", .{})) {
-        lib.linkSystemLibrary("harfbuzz");
-    } else {
-        const harfbuzz = libharfbuzz.buildLib(b, .{
-            .target = target,
-            .optimize = optimize,
-            .directwrite_enabled = font_backend == .Directwrite,
-            .freetype_enabled = font_backend.hasFreetype(),
-        });
-        lib.linkLibrary(harfbuzz);
-    }
 
     if (font_backend == .Directwrite) {
         lib.linkSystemLibrary("dwrite");

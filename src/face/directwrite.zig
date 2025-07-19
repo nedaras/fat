@@ -1,6 +1,5 @@
 const std = @import("std");
 const windows = @import("../windows.zig");
-const harfbuzz = @import("../harfbuzz.zig");
 const shared = @import("shared.zig");
 const Library = @import("../Library.zig");
 const assert = std.debug.assert;
@@ -10,7 +9,6 @@ pub const Face = struct {
     library: Library,
 
     dw_face: *windows.IDWriteFontFace,
-    hb_font: *harfbuzz.hb_font_t,
 
     size: shared.DesiredSize,
 
@@ -35,19 +33,14 @@ pub const Face = struct {
         const dw_face = try library.impl.dw_factory.CreateFontFace(face_type, &.{font_file}, options.face_index, .DWRITE_FONT_SIMULATIONS_NONE);
         errdefer dw_face.Release();
 
-        const hb_font = try harfbuzz.hb_directwrite_font_create(dw_face);
-        errdefer harfbuzz.hb_font_destroy(hb_font);
-
         return .{
             .library = library,
             .dw_face = dw_face,
-            .hb_font = hb_font,
             .size = options.size,
         };
     }
 
     pub fn close(self: Face) void {
-        harfbuzz.hb_font_destroy(self.hb_font);
         self.dw_face.Release();
     }
 

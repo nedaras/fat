@@ -1,6 +1,5 @@
 const std = @import("std");
 const freetype = @import("../freetype.zig");
-const harfbuzz = @import("../harfbuzz.zig");
 const shared = @import("shared.zig");
 const Library = @import("../Library.zig");
 const Allocator = std.mem.Allocator;
@@ -9,7 +8,6 @@ const Allocator = std.mem.Allocator;
 
 pub const Face = struct {
     ft_face: freetype.FT_Face,
-    hb_font: *harfbuzz.hb_font_t,
 
     size: shared.DesiredSize,
 
@@ -19,12 +17,8 @@ pub const Face = struct {
         try freetype.FT_New_Face(library.impl.ft_library, sub_path, options.face_index, &ft_face);
         errdefer freetype.FT_Done_Face(ft_face);
 
-        const hb_font = try harfbuzz.hb_ft_font_create_referenced(ft_face);
-        errdefer harfbuzz.hb_font_destroy(hb_font);
-
         var res: Face = .{
             .ft_face = ft_face,
-            .hb_font = hb_font,
             .size = undefined,
         };
 
@@ -33,7 +27,6 @@ pub const Face = struct {
     }
 
     pub fn close(self: Face) void {
-        harfbuzz.hb_font_destroy(self.hb_font);
         freetype.FT_Done_Face(self.ft_face);
     }
 

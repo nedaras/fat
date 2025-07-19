@@ -48,7 +48,7 @@ struct fat_face_glyph_render_s {
 } typedef fat_face_glyph_render_t;
 
 struct fat_face_info_s {
-  const char* path;
+  const char* family;
   float size;
 } typedef fat_face_info_t;
 
