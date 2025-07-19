@@ -339,14 +339,26 @@ pub const DirectWrite = struct {
 
         return .{
             .dw_font_collection = dw_font_collection,
+            .allocator = allocator,
+            .family_names_buf = std.mem.sliceAsBytes(try family_names_buf.toOwnedSlice()),
+            .family_names_idx = 0,
+            .count = family_count,
+            .idx = 0,
         };
     }
 
     pub const FontIterator = struct {
         dw_font_collection: *windows.IDWriteFontCollection,
 
-        pub const Font = struct {
+        allocator: Allocator,
 
+        family_names_buf: []align(@sizeOf(u16)) u8,
+        family_names_idx: usize,
+
+        count: usize,
+        idx: usize,
+
+        pub const Font = struct {
             family: [:0]const u8,
             size: f32,
 
@@ -365,11 +377,31 @@ pub const DirectWrite = struct {
         };
 
         pub fn next(self: *FontIterator) !?Font {
-            _ = self;
-            return null;
+            if (self.count == self.idx) {
+                return null;
+            }
+
+            defer self.idx += 1;
+            
+            assert(@mod(self.family_names_idx, 2) == 0);
+
+            //const family = std.mem.span(self.);
+            const ptr: [*:0]u8 = @ptrCast(&self.family_names_buf[self.family_names_idx]);
+            const family = std.mem.span(ptr);
+
+            // cuz these slices are aligned to u16 so yea
+            self.family_names_idx += family.len + @mod(family.len, 2);
+
+            return .{
+                .family = family,
+                .size = 0.0,
+                .weight = .book,
+                .slant = .roman,
+            };
         }
 
         pub fn deinit(self: FontIterator) void {
+            self.allocator.free(self.family_names_buf);
             self.dw_font_collection.Release();
         }
     };
