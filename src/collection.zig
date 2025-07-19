@@ -194,6 +194,7 @@ pub const DirectWrite = struct {
             var wbuf: [256]u16 = undefined;
 
             const wstr_len = names.GetStringLength(idx);
+            wbuf[wstr_len] = 0;
 
             assert(wbuf.len > wstr_len);
 
