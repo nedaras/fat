@@ -378,6 +378,30 @@ pub const IDWriteFontFamily = extern struct {
     pub inline fn Release(self: *IDWriteFontFamily) void {
         IUnknown.Release(@ptrCast(self));
     }
+
+    pub inline fn GetFontCount(self: *IDWriteFontFamily) UINT32 {
+        return IDWriteFontList.GetFontCount(@ptrCast(self));
+    }
+
+    pub const GetFamilyNamesError = error{
+        OutOfMemory,
+        Unexpected,
+    };
+
+    pub fn GetFamilyNames(self: *IDWriteFontFamily) GetFamilyNamesError!*IDWriteLocalizedStrings {
+        const FnType = fn (*IDWriteFontFamily, **IDWriteLocalizedStrings) callconv(WINAPI) HRESULT;
+        const get_family_names: *const FnType = @ptrCast(self.vtable[6]);
+
+        var names: *IDWriteLocalizedStrings = undefined;
+
+        const hr = get_family_names(self, &names);
+        return switch (hr) {
+            windows.S_OK => names,
+            windows.E_OUTOFMEMORY => error.OutOfMemory,
+            windows.E_POINTER => unreachable,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
 };
 
 pub const IDWriteFontList = extern struct {
@@ -401,6 +425,21 @@ const IDWriteFontListVTable = extern struct {
     GetFontCollection: *const fn (*IDWriteFontList, fontCollection: **IDWriteFontCollection) callconv(WINAPI) HRESULT,
     GetFontCount: *const fn (*IDWriteFontList) callconv(WINAPI) UINT32,
     GetFont: *const fn (*IDWriteFontList, index: UINT32, font: **IDWriteFont) callconv(WINAPI) HRESULT,
+};
+
+pub const IDWriteLocalizedStrings = extern struct {
+    vtable: [*]const *const anyopaque,
+
+    pub inline fn Release(self: *IDWriteLocalizedStrings) void {
+        return IUnknown.Release(@ptrCast(self));
+    }
+
+    pub inline fn GetCount(self: *IDWriteLocalizedStrings) UINT32 {
+        const FnType = fn (*IDWriteLocalizedStrings) callconv(WINAPI) UINT32;
+        const get_count: *const FnType = @ptrCast(self.vtable[3]);
+
+        return get_count(self);
+    }
 };
 
 pub const IDWriteFont = extern struct {

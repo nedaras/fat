@@ -174,22 +174,17 @@ pub const DirectWrite = struct {
             const dw_font_family = try dw_font_collection.GetFontFamily(font_family_i);
             defer dw_font_family.Release();
 
-            var dw_font_list: *windows.IDWriteFontList = undefined;    
+            // seems we cant get path without making a face so im thinking make
+            // path() func that would load our face and cache it 
+            // and if like load() is called we will pop our cached face but hmmm
+            // or idk dont expose path like just have load func cuz yea
 
-            dw_font_family.QueryInterface(windows.IDWriteFontList.UUID, @ptrCast(&dw_font_list)) catch |err| return switch (err) {
-                error.InterfaceNotFound => unreachable,
-                else => |e| e,
-            };
-            defer dw_font_list.Release();
+            const names = try dw_font_family.GetFamilyNames();
+            defer names.Release();
 
-            std.debug.print("n: {d}\n", .{dw_font_list.GetFontCount()});
+
+            std.debug.print("n: {d}-{d}\n", .{dw_font_family.GetFontCount(), names.GetCount()});
         }
-
-        //for (0..dw_font_collection.GetFontFamilyCount()) |i| {
-        //}
-
-
-        //std.debug.print("c: {d}\n", .{count});
 
         return .{
             .dw_font_collection = dw_font_collection,
