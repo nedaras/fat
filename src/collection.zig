@@ -193,12 +193,12 @@ pub const DirectWrite = struct {
 
             var wbuf: [256]u16 = undefined;
 
-            const wstr_len = names.GetLocaleNameLength(idx);
+            const wstr_len = names.GetStringLength(idx);
 
             assert(wbuf.len > wstr_len);
 
             const name = wbuf[0..wstr_len:0];
-            try names.GetLocaleName(idx, name);
+            try names.GetString(idx, name);
 
             std.debug.print("n: {d}, {}\n", .{idx, unicode.fmtUtf16Le(name)});
         }

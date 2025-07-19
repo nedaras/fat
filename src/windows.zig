@@ -476,8 +476,30 @@ pub const IDWriteLocalizedStrings = extern struct {
             else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
         };
     }
+
+    pub fn GetStringLength(self: *IDWriteLocalizedStrings, index: UINT32) UINT32 {
+        var length: UINT32 = undefined;
+        // if an idiot passes out of bounds index this could err
+        assert(self.vtable.GetStringLength(self, index, &length) == windows.S_OK);
+        return length;
+    }
+
+    pub const GetStringError = error{
+        Unexpected,
+    };
+
+    pub fn GetString(self: *IDWriteLocalizedStrings, index: UINT32, stringBuffer: [:0]u16) GetStringError!void {
+        // if an idiot passes out of bounds index this could err
+        const hr = self.vtable.GetString(self, index, stringBuffer.ptr, @intCast(stringBuffer.len + 1));
+        return switch (hr) {
+            windows.S_OK => {},
+            windows.E_POINTER => unreachable,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
 };
 
+// this is a bit cursed
 const IDWriteLocalizedStringsVTable = extern struct {
     QueryInterface: *const fn (self: *IDWriteFontList, riid: REFIID, ppvObject: **anyopaque) callconv(WINAPI) HRESULT,
     AddRef: *const fn (*IDWriteLocalizedStrings) callconv(WINAPI) ULONG,
