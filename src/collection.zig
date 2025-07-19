@@ -187,7 +187,7 @@ pub const DirectWrite = struct {
             assert(names.GetCount() > 0);
             
             const idx = names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
-                error.LocaleNameNotFound => 404, // just for debug
+                error.LocaleNameNotFound => 404, // just for debug just get 0 then cuz damm sad
                 else => |e| return e,
             };
 
@@ -201,7 +201,9 @@ pub const DirectWrite = struct {
             const name = wbuf[0..wstr_len:0];
             try names.GetString(idx, name);
 
-            std.debug.print("{}\n", .{unicode.fmtUtf16Le(name)});
+            for (0..dw_font_family.GetFontCount()) |_| {
+                std.debug.print("{}\n", .{unicode.fmtUtf16Le(name)});
+            }
         }
 
         return .{
