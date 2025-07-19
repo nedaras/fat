@@ -3,6 +3,8 @@ const build_options = @import("build_options");
 const windows = @import("windows.zig");
 const fontconfig = @import("fontconfig.zig");
 const Library = @import("Library.zig");
+const unicode = std.unicode;
+const assert = std.debug.assert;
 
 /// Descriptor is used to search for fonts. The only required field
 /// is "family". The rest are ignored unless they're set to a non-zero
@@ -182,8 +184,14 @@ pub const DirectWrite = struct {
             const names = try dw_font_family.GetFamilyNames();
             defer names.Release();
 
+            assert(names.GetCount() > 0);
+            
+            const idx = names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
+                error.LocaleNameNotFound => 404, // just for debug
+                else => |e| return e,
+            };
 
-            std.debug.print("n: {d}-{d}\n", .{dw_font_family.GetFontCount(), names.GetCount()});
+            std.debug.print("n: {d}\n", .{idx});
         }
 
         return .{

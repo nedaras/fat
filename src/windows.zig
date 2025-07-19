@@ -10,6 +10,7 @@ const BOOL = windows.BOOL;
 const BYTE = windows.BYTE;
 const GUID = windows.GUID;
 const RECT = windows.RECT;
+const WCHAR = windows.WCHAR;
 const FLOAT = windows.FLOAT;
 const ULONG = windows.ULONG;
 const WINAPI = windows.WINAPI;
@@ -428,18 +429,44 @@ const IDWriteFontListVTable = extern struct {
 };
 
 pub const IDWriteLocalizedStrings = extern struct {
-    vtable: [*]const *const anyopaque,
+    vtable: *const IDWriteLocalizedStringsVTable,
 
     pub inline fn Release(self: *IDWriteLocalizedStrings) void {
         return IUnknown.Release(@ptrCast(self));
     }
 
     pub inline fn GetCount(self: *IDWriteLocalizedStrings) UINT32 {
-        const FnType = fn (*IDWriteLocalizedStrings) callconv(WINAPI) UINT32;
-        const get_count: *const FnType = @ptrCast(self.vtable[3]);
-
-        return get_count(self);
+        return self.vtable.GetCount(self);
     }
+
+    pub const FindLocaleNameError = error{
+        LocaleNameNotFound,
+        Unexpected,
+    };
+
+    pub fn FindLocaleName(self: *IDWriteLocalizedStrings, localeName: [:0]const u16) FindLocaleNameError!UINT32 {
+        var index: UINT32 = undefined;
+        var exists: BOOL = undefined;
+
+        const hr = self.vtable.FindLocaleName(self, localeName, &index, &exists);
+        return switch (hr) {
+            windows.S_OK => if (exists == windows.TRUE) index else error.LocaleNameNotFound,
+            windows.E_POINTER => unreachable,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
+};
+
+const IDWriteLocalizedStringsVTable = extern struct {
+    QueryInterface: *const fn (self: *IDWriteFontList, riid: REFIID, ppvObject: **anyopaque) callconv(WINAPI) HRESULT,
+    AddRef: *const fn (*IDWriteLocalizedStrings) callconv(WINAPI) ULONG,
+    Release: *const fn (*IDWriteLocalizedStrings) callconv(WINAPI) ULONG,
+    GetCount: *const fn (*IDWriteLocalizedStrings) callconv(WINAPI) UINT32,
+    FindLocaleName: *const fn (*IDWriteLocalizedStrings, localeName: [*:0]const WCHAR, index: *UINT32, exists: *BOOL) callconv(WINAPI) HRESULT,
+    GetLocaleNameLength: *const fn (*IDWriteLocalizedStrings, index: UINT32, length: *UINT32) callconv(WINAPI) HRESULT,
+    GetLocaleName: *const fn (*IDWriteLocalizedStrings, index: UINT32, localeName: [*:0]WCHAR, size: UINT32) callconv(WINAPI) HRESULT,
+    GetStringLength: *const fn (*IDWriteLocalizedStrings, index: UINT32, length: *UINT32) callconv(WINAPI) HRESULT,
+    GetString: *const fn (*IDWriteLocalizedStrings, index: UINT32, stringBuffer: [*:0]WCHAR, size: UINT32) callconv(WINAPI) HRESULT,
 };
 
 pub const IDWriteFont = extern struct {
