@@ -455,6 +455,27 @@ pub const IDWriteLocalizedStrings = extern struct {
             else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
         };
     }
+
+    pub fn GetLocaleNameLength(self: *IDWriteLocalizedStrings, index: UINT32) UINT32 {
+        var length: UINT32 = undefined;
+        // if an idiot passes out of bounds index this could err
+        assert(self.vtable.GetLocaleNameLength(self, index, &length) == windows.S_OK);
+        return length;
+    }
+
+    pub const GetLocaleNameError = error{
+        Unexpected,
+    };
+
+    pub fn GetLocaleName(self: *IDWriteLocalizedStrings, index: UINT32, localeName: [:0]u16) GetLocaleNameError!void {
+        // if an idiot passes out of bounds index this could err
+        const hr = self.vtable.GetLocaleName(self, index, localeName.ptr, @intCast(localeName.len + 1));
+        return switch (hr) {
+            windows.S_OK => {},
+            windows.E_POINTER => unreachable,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
 };
 
 const IDWriteLocalizedStringsVTable = extern struct {
