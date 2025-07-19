@@ -23,7 +23,69 @@ pub const FcMatchKind = enum(c_uint) {
     FcMatchScan,
 };
 
-pub const FcResult = enum(c_uint) { FcResultMatch, FcResultNoMatch, FcResultTypeMismatch, FcResultNoId, FcResultOutOfMemory, _ };
+// todo: just pick one if theres two
+pub const FcWeight = enum (u8) {
+    FC_WEIGHT_THIN = 0,
+    FC_WEIGHT_EXTRALIGHT,
+    FC_WEIGHT_ULTRALIGHT = 40,
+    FC_WEIGHT_LIGHT = 50,
+    FC_WEIGHT_DEMILIGHT,
+    FC_WEIGHT_SEMILIGHT = 55,
+    FC_WEIGHT_BOOK = 75,
+    FC_WEIGHT_REGULAR,
+    FC_WEIGHT_NORMAL = 80,
+    FC_WEIGHT_MEDIUM = 100,
+    FC_WEIGHT_DEMIBOLD,
+    FC_WEIGHT_SEMIBOLD = 180,
+    FC_WEIGHT_BOLD = 200,
+    FC_WEIGHT_EXTRABOLD,
+    FC_WEIGHT_ULTRABOLD = 205,
+    FC_WEIGHT_BLACK,
+    FC_WEIGHT_HEAVY = 210,
+    FC_WEIGHT_EXTRABLACK,
+    FC_WEIGHT_ULTRABLACK = 215,
+};
+
+pub const FcSlant = enum(c_int) {
+    FC_SLANT_ROMAN = 0,
+    FC_SLANT_ITALIC = 100,
+    FC_SLANT_OBLIQUE = 110,
+};
+
+pub fn nearestWeight(weight: anytype) error{InvalidWeight}!FcWeight {
+    @setRuntimeSafety(false);
+
+    // has to be in range of all valid FcWeight values
+    if (weight < 0 or weight > 215) {
+        return error.InvalidWeight;
+    }
+
+    const values = comptime std.enums.values(FcWeight);
+    const weight_val: u8 = @intCast(weight);
+      
+    var best_weight: FcWeight = undefined;
+    var best_diff: u8 = undefined;
+
+    inline for (values, 0..) |curr_weight, i| {
+        const curr_weight_val = @intFromEnum(curr_weight);
+        // todo: if im not bored o could make this line branchless
+        const diff = if (weight_val > curr_weight_val) 
+            weight_val - curr_weight_val else curr_weight_val - weight_val;
+
+        if (i == 0 or diff < best_diff) {
+            best_diff = diff;
+            best_weight = curr_weight;
+        }
+
+        if (diff == 0) {
+            break;
+        }
+    }
+
+    return best_weight;
+}
+
+pub const FcResult = enum(c_uint) { FcResultMatch, FcResultNoMatch, FcResultTypeMismatch, FcResultNoId, FcResultOutOfMemory, _, };
 
 // kinda sucks when we dont have info to errors
 pub const Error = error{
@@ -79,7 +141,6 @@ pub inline fn FcDefaultSubstitute(pattern: *FcPattern) void {
 }
 
 pub const FcFontSortError = error{
-    MatchNotFound,
     OutOfMemory,
     Unexpected,
 };
@@ -91,7 +152,6 @@ pub fn FcFontSort(config: *FcConfig, p: *FcPattern, trim: bool, csp: ?[:null]?*F
     const font_set = abi.FcFontSort(config, p, @intFromBool(trim), @ptrCast(csp_ptr), @ptrCast(&result));
     return switch (result) {
         .FcResultMatch => font_set,
-        .FcResultNoMatch => error.MatchNotFound,
         .FcResultOutOfMemory => error.OutOfMemory,
         else => error.Unexpected,
     };
@@ -106,65 +166,61 @@ pub inline fn FcFontRenderPrepare(config: *FcConfig, pat: *FcPattern, font: *FcP
 }
 
 pub const FcPatternGetCharSetError = error{
-    MatchNotFound,
     Unexpected,
 };
 
-pub fn FcPatternGetCharSet(p: *const FcPattern, object: [:0]const u8, n: c_int) FcPatternGetCharSetError!*const FcCharSet {
+pub fn FcPatternGetCharSet(p: *const FcPattern, object: [:0]const u8, n: c_int) FcPatternGetCharSetError!?*const FcCharSet {
     var c: *FcCharSet = undefined;
 
     const result: FcResult = @enumFromInt(abi.FcPatternGetCharSet(p, object, n, @ptrCast(&c)));
     return switch (result) {
         .FcResultMatch => c,
-        .FcResultNoMatch => error.MatchNotFound,
+        .FcResultNoMatch => null,
         else => error.Unexpected,
     };
 }
 
 pub const FcPatternGetStringError = error{
-    MatchNotFound,
     Unexpected,
 };
 
-pub fn FcPatternGetString(p: *const FcPattern, object: [:0]const u8, n: c_int) FcPatternGetStringError![:0]const u8 {
+pub fn FcPatternGetString(p: *const FcPattern, object: [:0]const u8, n: c_int) FcPatternGetStringError!?[:0]const u8 {
     var s: [*:0]const u8 = undefined;
 
     const result: FcResult = @enumFromInt(abi.FcPatternGetString(p, object, n, @ptrCast(&s)));
     return switch (result) {
         .FcResultMatch => std.mem.span(s),
-        .FcResultNoMatch => error.MatchNotFound,
-        else => error.Unexpected,
+        .FcResultNoMatch => null,
+        else => return error.Unexpected,
     };
 }
 
 pub const FcPatternGetDoubleError = error{
-    MatchNotFound,
     Unexpected,
 };
 
-pub fn FcPatternGetDouble(p: *const FcPattern, object: [:0]const u8, n: c_int) FcPatternGetStringError!f64 {
+pub fn FcPatternGetDouble(p: *const FcPattern, object: [:0]const u8, n: c_int) FcPatternGetStringError!?f64 {
     var d: f64 = undefined;
 
     const result: FcResult = @enumFromInt(abi.FcPatternGetDouble(p, object, n, &d));
     return switch (result) {
         .FcResultMatch => d,
-        .FcResultNoMatch => error.MatchNotFound,
+        .FcResultNoMatch => null,
         else => error.Unexpected,
     };
 }
 
 pub const FcPatternGetIntegerError = error{
-    MatchNotFound,
     Unexpected,
 };
 
-pub fn FcPatternGetInteger(p: *const FcPattern, object: [:0]const u8, n: c_int) FcPatternGetIntegerError!c_int {
+pub fn FcPatternGetInteger(p: *const FcPattern, object: [:0]const u8, n: c_int) FcPatternGetIntegerError!?c_int {
     var i: c_int = undefined;
 
     const result: FcResult = @enumFromInt(abi.FcPatternGetInteger(p, object, n, &i));
     return switch (result) {
         .FcResultMatch => i,
-        .FcResultNoMatch => error.MatchNotFound,
+        .FcResultNoMatch => null,
         else => error.Unexpected,
     };
 }

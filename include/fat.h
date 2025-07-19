@@ -30,6 +30,30 @@ typedef enum {
   fat_error_unexpected,
 } fat_error_e;
 
+typedef enum {
+  fat_font_weight_thin,
+  fat_font_weight_extralight,
+  fat_font_weight_light,
+  fat_font_weight_semilight,
+  fat_font_weight_book, // mb just make this one regular
+  fat_font_weight_regular,
+  fat_font_weight_medium,
+  fat_font_weight_demibold,
+  fat_font_weight_bold,
+  fat_font_weight_extrabold,
+  fat_font_weight_black,
+  fat_font_weight_extrablack,
+} fat_font_weight_e;
+
+typedef enum {
+  fat_font_slant_roman,
+  fat_font_slant_italic,
+  fat_font_slant_oblique,
+} fat_font_slant_e;
+
+typedef uint8_t fat_font_weight_t;
+typedef uint8_t fat_font_slant_t;
+
 struct fat_face_options_s {
   float size;
   uint32_t face_index;
@@ -50,6 +74,8 @@ struct fat_face_glyph_render_s {
 struct fat_face_info_s {
   const char* family;
   float size;
+  fat_font_weight_t weight;
+  fat_font_slant_t slant;
 } typedef fat_face_info_t;
 
 struct fat_collection_descriptor_s {

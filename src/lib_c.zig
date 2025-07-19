@@ -18,6 +18,8 @@ const fat_error_e = enum(c_int) {
 const FaceInfo = extern struct {
     family: [*:0]const u8,
     size: f32,
+    weight: u8,
+    slant: u8,
 };
 
 export fn fat_error_name(err: c_int) [*:0]const u8 {
@@ -136,7 +138,7 @@ export fn fat_font_collection(o_library: ?*Library, descriptor: collection.Descr
     const out_font_iterator = o_font_iterator orelse return fat_error_e.invalid_pointer;
     const font_iterator = c_allocator.create(collection.GenericFontIterator) catch return fat_error_e.out_of_memory;
 
-    font_iterator.* = library.fontCollection(.{
+    font_iterator.* = library.fontCollection(c_allocator, .{
         .family = if (descriptor.family) |f| std.mem.span(f) else null,
         .style = if (descriptor.style) |s| std.mem.span(s) else null,
         .size = descriptor.size,
@@ -146,7 +148,6 @@ export fn fat_font_collection(o_library: ?*Library, descriptor: collection.Descr
         return switch (err) {
             error.OutOfMemory => fat_error_e.out_of_memory,
             error.Unexpected => fat_error_e.unexpected,
-            error.MatchNotFound => fat_error_e.unexpected, // todo: idk seems this should never happen or atleast be handled by us
         };
     };
 
@@ -175,7 +176,6 @@ export fn fat_font_collection_next(o_font_iterator: ?*collection.GenericFontIter
         return switch (err) {
             error.OutOfMemory => fat_error_e.out_of_memory,
             error.Unexpected => fat_error_e.unexpected,
-            error.MatchNotFound => fat_error_e.unexpected, // todo: idk seems this should never happen or atleast be handled by us
         };
     } orelse {
         c_allocator.destroy(deffered_face);
@@ -198,10 +198,14 @@ export fn fat_deffered_face_query_info(o_deffered_face: ?*collection.GenericFont
     const deffered_face = o_deffered_face orelse return .{
         .family = "",
         .size = 0.0,
+        .weight = 0,
+        .slant = 0,
     };
 
     return .{
         .family = deffered_face.family,
         .size = deffered_face.size,
+        .weight = @intFromEnum(deffered_face.weight),
+        .slant = @intFromEnum(deffered_face.slant),
     };
 }

@@ -48,7 +48,7 @@ pub const DWRITE_FONT_FACE_TYPE = enum(INT) {
     DWRITE_FONT_FACE_TYPE_RAW_CFF,
 };
 
-pub const DWRITE_FONT_SIMULATIONS = enum(INT) { DWRITE_FONT_SIMULATIONS_NONE = 0x0000, DWRITE_FONT_SIMULATIONS_BOLD = 0x0001, DWRITE_FONT_SIMULATIONS_OBLIQUE = 0x0002 };
+pub const DWRITE_FONT_SIMULATIONS = enum(INT) { DWRITE_FONT_SIMULATIONS_NONE = 0x0000, DWRITE_FONT_SIMULATIONS_BOLD = 0x0001, DWRITE_FONT_SIMULATIONS_OBLIQUE = 0x0002, };
 
 pub const DWRITE_RENDERING_MODE = enum(INT) {
     DWRITE_RENDERING_MODE_DEFAULT,
@@ -64,6 +64,7 @@ pub const DWRITE_MEASURING_MODE = enum(INT) { DWRITE_MEASURING_MODE_NATURAL, DWR
 
 pub const DWRITE_TEXTURE_TYPE = enum(INT) { DWRITE_TEXTURE_ALIASED_1x1, DWRITE_TEXTURE_CLEARTYPE_3x1, };
 
+// todo: just pick one if theres two
 pub const DWRITE_FONT_WEIGHT = enum (INT) {
     DWRITE_FONT_WEIGHT_THIN = 100,
     DWRITE_FONT_WEIGHT_EXTRA_LIGHT = 200,
@@ -567,9 +568,9 @@ const IDWriteLocalizedStringsVTable = extern struct {
     GetCount: *const fn (*IDWriteLocalizedStrings) callconv(WINAPI) UINT32,
     FindLocaleName: *const fn (*IDWriteLocalizedStrings, localeName: [*:0]const WCHAR, index: *UINT32, exists: *BOOL) callconv(WINAPI) HRESULT,
     GetLocaleNameLength: *const fn (*IDWriteLocalizedStrings, index: UINT32, length: *UINT32) callconv(WINAPI) HRESULT,
-    GetLocaleName: *const fn (*IDWriteLocalizedStrings, index: UINT32, localeName: [*:0]WCHAR, size: UINT32) callconv(WINAPI) HRESULT,
+    GetLocaleName: *const fn (*IDWriteLocalizedStrings, index: UINT32, localeName: [*]WCHAR, size: UINT32) callconv(WINAPI) HRESULT,
     GetStringLength: *const fn (*IDWriteLocalizedStrings, index: UINT32, length: *UINT32) callconv(WINAPI) HRESULT,
-    GetString: *const fn (*IDWriteLocalizedStrings, index: UINT32, stringBuffer: [*:0]WCHAR, size: UINT32) callconv(WINAPI) HRESULT,
+    GetString: *const fn (*IDWriteLocalizedStrings, index: UINT32, stringBuffer: [*]WCHAR, size: UINT32) callconv(WINAPI) HRESULT,
 };
 
 pub const IDWriteFont = extern struct {

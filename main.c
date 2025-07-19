@@ -70,7 +70,8 @@ int main() {
     }
 
     fat_face_info_t info = fat_deffered_face_query_info(deffered_face);
-    printf("%s\n", info.family);
+    //printf("%s\n", info.family);
+    printf("%d %d\n", info.weight, info.slant);
 
     fat_deffered_face_done(deffered_face);
   }

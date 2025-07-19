@@ -5,6 +5,28 @@ const fontconfig = @import("fontconfig.zig");
 const Library = @import("Library.zig");
 const unicode = std.unicode;
 const assert = std.debug.assert;
+const Allocator = std.mem.Allocator;
+
+pub const FontWeight = enum {
+    thin,
+    extralight,
+    light,
+    semilight,
+    book, // mb just make this one regular
+    regular,
+    medium,
+    demibold,
+    bold,
+    extrabold,
+    black,
+    extrablack,
+};
+
+pub const FontSlant = enum {
+    roman,
+    italic,
+    oblique,
+};
 
 /// Descriptor is used to search for fonts. The only required field
 /// is "family". The rest are ignored unless they're set to a non-zero
@@ -24,7 +46,7 @@ pub const Descriptor = struct {
     /// string the font advertises. The "bold/italic" booleans later in this
     /// struct filter by the style trait the font has, not the string, so
     /// these can be used in conjunction or not.
-    style: ?[:0]const u8 = null,
+    style: ?[:0]const u8 = null, // tood make it an enum wtf
 
     /// A codepoint that this font must be able to render.
     codepoint: u21 = 0, // todo: make it codepoints
@@ -49,7 +71,6 @@ pub const Descriptor = struct {
 };
 
 pub const InitError = error{
-    MatchNotFound,
     OutOfMemory,
     Unexpected,
 };
@@ -61,16 +82,16 @@ pub const GenericFontIterator = switch (build_options.font_backend) {
     .Freetype => Noop.FontIterator,
 };
 
-pub inline fn initIterator(library: Library, descriptor: Descriptor) InitError!GenericFontIterator {
+pub inline fn initIterator(allocator: Allocator, library: Library, descriptor: Descriptor) InitError!GenericFontIterator {
     return switch (build_options.font_backend) {
-        .FontconfigFreetype => FontConfig.initIterator(library, descriptor),
-        .Directwrite => DirectWrite.initIterator(library, descriptor),
-        .Freetype => Noop.initIterator(library, descriptor),
+        .FontconfigFreetype => FontConfig.initIterator(allocator, library, descriptor),
+        .Directwrite => DirectWrite.initIterator(allocator, library, descriptor),
+        .Freetype => Noop.initIterator(allocator, library, descriptor),
     };
 }
 
 pub const FontConfig = struct {
-    pub fn initIterator(library: Library, descriptor: Descriptor) InitError!FontIterator {
+    pub fn initIterator(_: Allocator, library: Library, descriptor: Descriptor) InitError!FontIterator {
         const fc_pattern = try fontconfig.FcPatternCreate();
         errdefer fontconfig.FcPatternDestroy(fc_pattern);
 
@@ -122,6 +143,9 @@ pub const FontConfig = struct {
             family: [:0]const u8,
             size: f32,
 
+            weight: FontWeight,
+            slant: FontSlant,
+
             pub fn deinit(self: Font) void {
                 fontconfig.FcPatternDestroy(self.fc_pattern);
             }
@@ -141,11 +165,41 @@ pub const FontConfig = struct {
             const fc_pattern = try fontconfig.FcFontRenderPrepare(self.fc_config, self.fc_pattern, self.fc_font_set.fonts[self.idx].?);
             errdefer fontconfig.FcPatternDestroy(fc_pattern);
 
-            const fc_charset = try fontconfig.FcPatternGetCharSet(fc_pattern, "charset", 0);
+            const fc_charset = (try fontconfig.FcPatternGetCharSet(fc_pattern, "charset", 0)).?;
 
-            const family = try fontconfig.FcPatternGetString(fc_pattern, "family", 0);
-            //const style = try fontconfig.FcPatternGetString(fc_pattern, "style", 0);
-            const size = try fontconfig.FcPatternGetDouble(fc_pattern, "size", 0);
+            const family = (try fontconfig.FcPatternGetString(fc_pattern, "family", 0)).?;
+            const size = (try fontconfig.FcPatternGetDouble(fc_pattern, "size", 0)).?;
+
+            const fc_weight: fontconfig.FcWeight = fontconfig.nearestWeight((try fontconfig.FcPatternGetInteger(fc_pattern, "weight", 0)).?) catch unreachable;
+            const fc_slant: fontconfig.FcSlant = @enumFromInt((try fontconfig.FcPatternGetInteger(fc_pattern, "slant", 0)).?);
+
+            const weight: FontWeight = switch (fc_weight) {
+                .FC_WEIGHT_THIN => .thin,
+                .FC_WEIGHT_EXTRALIGHT,
+                .FC_WEIGHT_ULTRALIGHT => .extralight,
+                .FC_WEIGHT_LIGHT => .light,
+                .FC_WEIGHT_DEMILIGHT,
+                .FC_WEIGHT_SEMILIGHT => .semilight,
+                .FC_WEIGHT_BOOK => .book,
+                .FC_WEIGHT_REGULAR,
+                .FC_WEIGHT_NORMAL =>  .regular,
+                .FC_WEIGHT_MEDIUM => .medium,
+                .FC_WEIGHT_DEMIBOLD,
+                .FC_WEIGHT_SEMIBOLD => .demibold,
+                .FC_WEIGHT_BOLD => .bold,
+                .FC_WEIGHT_EXTRABOLD,
+                .FC_WEIGHT_ULTRABOLD => .extrabold,
+                .FC_WEIGHT_BLACK,
+                .FC_WEIGHT_HEAVY => .black,
+                .FC_WEIGHT_EXTRABLACK,
+                .FC_WEIGHT_ULTRABLACK => .extrablack,
+            };
+
+            const slant: FontSlant = switch (fc_slant) {
+                .FC_SLANT_ROMAN => .roman,
+                .FC_SLANT_ITALIC => .italic,
+                .FC_SLANT_OBLIQUE => .oblique,
+            };
 
             return .{
                 .fc_pattern = fc_pattern,
@@ -153,6 +207,8 @@ pub const FontConfig = struct {
 
                 .family = family,
                 .size = @floatCast(size),
+                .weight = weight,
+                .slant = slant,
             };
         }
 
@@ -164,42 +220,88 @@ pub const FontConfig = struct {
 };
 
 pub const DirectWrite = struct {
-    pub fn initIterator(library: Library, descriptor: Descriptor) InitError!FontIterator {
+    pub fn initIterator(allocator: Allocator, library: Library, descriptor: Descriptor) InitError!FontIterator {
         _ = descriptor;
 
         const dw_font_collection = try library.impl.dw_factory.GetSystemFontCollection(false);
         errdefer dw_font_collection.Release();
 
-        //const font_family_len = dw_font_collection.GetFontFamilyCount();
-        //var font_family_i: windows.UINT32 = 0;
-
         const family_count = dw_font_collection.GetFontFamilyCount();
-        var family_index: windows.UINT32 = 0;
+        var family_names_len: usize = 0;
 
-        while (family_index < family_count) : (family_index += 1) {
-            const dw_font_family = try dw_font_collection.GetFontFamily(family_index);
-            defer dw_font_family.Release(); // mb dont release need to check if returned ref is 0 then ye releasing is bad
+        {
+            var family_index: windows.UINT32 = 0;
+            while (family_index < family_count) : (family_index += 1) {
+                const dw_font_family = try dw_font_collection.GetFontFamily(family_index);
+                defer dw_font_family.Release(); // mb dont release need to check if returned ref is 0 then ye releasing is bad
 
-            const family_names = try dw_font_family.GetFamilyNames();
-            defer family_names.Release();
+                const family_names = try dw_font_family.GetFamilyNames();
+                defer family_names.Release();
 
-            assert(family_names.GetCount() > 0);
+                //assert(family_names.GetCount() > 0);
 
-            const font_count = dw_font_family.GetFontCount();
-            var font_index: windows.UINT32 = 0;
+                //const font_count = dw_font_family.GetFontCount();
+                //var font_index: windows.UINT32 = 0;
 
-            while (font_index < font_count) : (font_index += 1) {
-                const dw_font = try dw_font_family.GetFont(font_index);
-                defer dw_font.Release();
+                //while (font_index < font_count) : (font_index += 1) {
+                //const dw_font = try dw_font_family.GetFont(font_index);
+                //defer dw_font.Release();
 
-                std.debug.print("{}\n", .{dw_font.GetStyle()});
+                //std.debug.print("{}\n", .{dw_font.GetStyle()});
+                //}
+
+                const index = family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
+                    error.LocaleNameNotFound => 0, 
+                    else => |e| return e,
+                };
+
+
+                family_names_len += family_names.GetStringLength(index) + 1; // null terminator
             }
-
-            //const index = family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
-                //error.LocaleNameNotFound => 0, 
-                //else => |e| return e,
-            //};
         }
+
+        // uisng arr list as we will just convert from wtf16 to wtf8 so there is a chance that our buffer will become bigger
+        var family_names_buf: std.ArrayList(u16) = try .initCapacity(allocator, family_names_len);
+        defer family_names_buf.deinit();
+         
+        {
+            var family_index: windows.UINT32 = 0;
+            while (family_index < family_count) : (family_index += 1) {
+                const dw_font_family = try dw_font_collection.GetFontFamily(family_index);
+                defer dw_font_family.Release(); // mb dont release need to check if returned ref is 0 then ye releasing is bad
+
+                const family_names = try dw_font_family.GetFamilyNames();
+                defer family_names.Release();
+
+                const index = family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
+                    error.LocaleNameNotFound => 0, 
+                    else => |e| return e,
+                };
+
+                // todo: check if zig has this somewhere
+                const unused_capacity = family_names_buf.unusedCapacitySlice();
+                try family_names_buf.ensureUnusedCapacity(family_names.GetStringLength(index) + 1);
+
+                const family_name = family_names.GetString(index, unused_capacity) catch |err| return switch (err) {
+                    error.BufferTooSmall => unreachable,
+                    else => |e| e,
+                };
+
+                const len = unicode.calcWtf8Len(family_name) + 1;
+                const wide_len = std.math.divCeil(usize, len, 2) catch unreachable;
+
+                try family_names_buf.ensureUnusedCapacity(wide_len);
+
+                const buf = std.mem.sliceAsBytes(unused_capacity)[0..len];
+
+                assert(unicode.wtf16LeToWtf8(buf, family_name) == len - 1);
+                buf[len - 1] = 0;
+
+                family_names_buf.items.len += wide_len;
+            }
+        }
+
+        std.debug.print("{s}\n", .{std.mem.sliceAsBytes(family_names_buf.items)});
 
         //while (font_family_i < font_family_len) : (font_family_i += 1) {
             //const dw_font_family = try dw_font_collection.GetFontFamily(font_family_i);
@@ -248,6 +350,9 @@ pub const DirectWrite = struct {
             family: [:0]const u8,
             size: f32,
 
+            weight: FontWeight,
+            slant: FontSlant,
+
             pub fn deinit(self: Font) void {
                 _ = self;
             }
@@ -271,7 +376,7 @@ pub const DirectWrite = struct {
 };
 
 pub const Noop = struct {
-    pub fn initIterator(library: Library, descriptor: Descriptor) InitError!FontIterator {
+    pub fn initIterator(_: Allocator, library: Library, descriptor: Descriptor) InitError!FontIterator {
         _ = library;
         _ = descriptor;
         return .{};
