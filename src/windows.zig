@@ -464,14 +464,21 @@ pub const IDWriteLocalizedStrings = extern struct {
     }
 
     pub const GetLocaleNameError = error{
+        BufferTooSmall,
         Unexpected,
     };
 
-    pub fn GetLocaleName(self: *IDWriteLocalizedStrings, index: UINT32, localeName: [:0]u16) GetLocaleNameError!void {
+    pub fn GetLocaleName(self: *IDWriteLocalizedStrings, index: UINT32, localeName: []u16) GetLocaleNameError![:0]u16 {
+        const length = self.GetLocaleNameLength(index);
+        if (length + 1 > localeName.len) {
+            @branchHint(.cold);
+            return error.BufferTooSmall;
+        }
+
         // if an idiot passes out of bounds index this could err
-        const hr = self.vtable.GetLocaleName(self, index, localeName.ptr, @intCast(localeName.len + 1));
+        const hr = self.vtable.GetLocaleName(self, index, localeName.ptr, length + 1);
         return switch (hr) {
-            windows.S_OK => {},
+            windows.S_OK => localeName[0..length:0],
             windows.E_POINTER => unreachable,
             else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
         };
@@ -485,14 +492,20 @@ pub const IDWriteLocalizedStrings = extern struct {
     }
 
     pub const GetStringError = error{
+        BufferTooSmall,
         Unexpected,
     };
 
-    pub fn GetString(self: *IDWriteLocalizedStrings, index: UINT32, stringBuffer: [:0]u16) GetStringError!void {
-        // if an idiot passes out of bounds index this could err
-        const hr = self.vtable.GetString(self, index, stringBuffer.ptr, @intCast(stringBuffer.len + 1));
+    pub fn GetString(self: *IDWriteLocalizedStrings, index: UINT32, stringBuffer: []u16) GetStringError![:0]u16 {
+        const length = self.GetStringLength(index);
+        if (length + 1 > stringBuffer.len) {
+            @branchHint(.cold);
+            return error.BufferTooSmall;
+        }
+
+        const hr = self.vtable.GetString(self, index, stringBuffer.ptr, length + 1);
         return switch (hr) {
-            windows.S_OK => {},
+            windows.S_OK => stringBuffer[0..length:0],
             windows.E_POINTER => unreachable,
             else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
         };

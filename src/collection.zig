@@ -144,6 +144,7 @@ pub const FontConfig = struct {
             const fc_charset = try fontconfig.FcPatternGetCharSet(fc_pattern, "charset", 0);
 
             const family = try fontconfig.FcPatternGetString(fc_pattern, "family", 0);
+            //const style = try fontconfig.FcPatternGetString(fc_pattern, "style", 0);
             const size = try fontconfig.FcPatternGetDouble(fc_pattern, "size", 0);
 
             return .{
@@ -169,42 +170,62 @@ pub const DirectWrite = struct {
         const dw_font_collection = try library.impl.dw_factory.GetSystemFontCollection(false);
         errdefer dw_font_collection.Release();
 
-        const font_family_len = dw_font_collection.GetFontFamilyCount();
-        var font_family_i: windows.UINT32 = 0;
+        //const font_family_len = dw_font_collection.GetFontFamilyCount();
+        //var font_family_i: windows.UINT32 = 0;
 
-        while (font_family_i < font_family_len) : (font_family_i += 1) {
-            const dw_font_family = try dw_font_collection.GetFontFamily(font_family_i);
-            defer dw_font_family.Release();
+        var sum: usize = 0;
+        for (0..dw_font_collection.GetFontFamilyCount()) |i| {
+            const dw_font_family = try dw_font_collection.GetFontFamily(@intCast(i));
+            defer dw_font_family.Release(); // mb dont release need to check if returned ref is 0 then ye releasing is bad
+
+            const family_names = try dw_font_family.GetFamilyNames();
+            defer family_names.Release();
+
+            assert(family_names.GetCount() > 0);
+
+            const index = family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
+                error.LocaleNameNotFound => 0, 
+                else => |e| return e,
+            };
+
+            sum += family_names.GetStringLength(index) + 1;
+        }
+
+        std.debug.print("need to alloc: {d} bytes\n", .{sum});
+
+        //while (font_family_i < font_family_len) : (font_family_i += 1) {
+            //const dw_font_family = try dw_font_collection.GetFontFamily(font_family_i);
+            //defer dw_font_family.Release();
 
             // seems we cant get path without making a face so im thinking make
             // path() func that would load our face and cache it 
             // and if like load() is called we will pop our cached face but hmmm
             // or idk dont expose path like just have load func cuz yea
 
-            const names = try dw_font_family.GetFamilyNames();
-            defer names.Release();
+            //const names = try dw_font_family.GetFamilyNames();
+            //defer names.Release();
 
-            assert(names.GetCount() > 0);
+            //assert(names.GetCount() > 0);
             
-            const idx = names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
-                error.LocaleNameNotFound => 404, // just for debug just get 0 then cuz damm sad
-                else => |e| return e,
-            };
+            //const idx = names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
+                //error.LocaleNameNotFound => 404, // just for debug just get 0 then cuz damm sad
+                //else => |e| return e,
+            //};
 
-            var wbuf: [256]u16 = undefined;
+            //var wbuf: [256]u16 = undefined;
 
-            const wstr_len = names.GetStringLength(idx);
-            wbuf[wstr_len] = 0;
+            //const wstr_len = names.GetStringLength(idx);
+            //wbuf[wstr_len] = 0;
 
-            assert(wbuf.len > wstr_len);
+            //assert(wbuf.len > wstr_len);
 
-            const name = wbuf[0..wstr_len:0];
-            try names.GetString(idx, name);
+            //const name = wbuf[0..wstr_len:0];
+            //try names.GetString(idx, name);
 
-            for (0..dw_font_family.GetFontCount()) |_| {
-                std.debug.print("{}\n", .{unicode.fmtUtf16Le(name)});
-            }
-        }
+            //for (0..dw_font_family.GetFontCount()) |_| {
+                //std.debug.print("{}\n", .{unicode.fmtUtf16Le(name)});
+            //}
+        //}
 
         return .{
             .dw_font_collection = dw_font_collection,
