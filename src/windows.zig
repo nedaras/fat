@@ -60,9 +60,35 @@ pub const DWRITE_RENDERING_MODE = enum(INT) {
     DWRITE_RENDERING_MODE_OUTLINE,
 };
 
-pub const DWRITE_MEASURING_MODE = enum(INT) { DWRITE_MEASURING_MODE_NATURAL, DWRITE_MEASURING_MODE_GDI_CLASSIC, DWRITE_MEASURING_MODE_GDI_NATURAL };
+pub const DWRITE_MEASURING_MODE = enum(INT) { DWRITE_MEASURING_MODE_NATURAL, DWRITE_MEASURING_MODE_GDI_CLASSIC, DWRITE_MEASURING_MODE_GDI_NATURAL, };
 
-pub const DWRITE_TEXTURE_TYPE = enum(INT) { DWRITE_TEXTURE_ALIASED_1x1, DWRITE_TEXTURE_CLEARTYPE_3x1 };
+pub const DWRITE_TEXTURE_TYPE = enum(INT) { DWRITE_TEXTURE_ALIASED_1x1, DWRITE_TEXTURE_CLEARTYPE_3x1, };
+
+pub const DWRITE_FONT_WEIGHT = enum (INT) {
+    DWRITE_FONT_WEIGHT_THIN = 100,
+    DWRITE_FONT_WEIGHT_EXTRA_LIGHT = 200,
+    DWRITE_FONT_WEIGHT_ULTRA_LIGHT = 200,
+    DWRITE_FONT_WEIGHT_LIGHT = 300,
+    DWRITE_FONT_WEIGHT_SEMI_LIGHT = 350,
+    DWRITE_FONT_WEIGHT_NORMAL = 400,
+    DWRITE_FONT_WEIGHT_REGULAR = 400,
+    DWRITE_FONT_WEIGHT_MEDIUM = 500,
+    DWRITE_FONT_WEIGHT_DEMI_BOLD = 600,
+    DWRITE_FONT_WEIGHT_SEMI_BOLD = 600,
+    DWRITE_FONT_WEIGHT_BOLD = 700,
+    DWRITE_FONT_WEIGHT_EXTRA_BOLD = 800,
+    DWRITE_FONT_WEIGHT_ULTRA_BOLD = 800,
+    DWRITE_FONT_WEIGHT_BLACK = 900,
+    DWRITE_FONT_WEIGHT_HEAVY = 900,
+    DWRITE_FONT_WEIGHT_EXTRA_BLACK = 950,
+    DWRITE_FONT_WEIGHT_ULTRA_BLACK = 950,
+};
+
+pub const DWRITE_FONT_STYLE = enum(INT) {
+    DWRITE_FONT_STYLE_NORMAL,
+    DWRITE_FONT_STYLE_OBLIQUE,
+    DWRITE_FONT_STYLE_ITALIC
+};
 
 pub const DWRITE_MATRIX = extern struct {
     m11: FLOAT,
@@ -384,6 +410,10 @@ pub const IDWriteFontFamily = extern struct {
         return IDWriteFontList.GetFontCount(@ptrCast(self));
     }
 
+    pub inline fn GetFont(self: *IDWriteFontFamily, index: UINT32) IDWriteFontList.GetFontError!*IDWriteFont {
+        return IDWriteFontList.GetFont(@ptrCast(self), index);
+    }
+
     pub const GetFamilyNamesError = error{
         OutOfMemory,
         Unexpected,
@@ -416,6 +446,23 @@ pub const IDWriteFontList = extern struct {
 
     pub inline fn GetFontCount(self: *IDWriteFontList) UINT32 {
         return self.vtable.GetFontCount(self);
+    }
+
+    pub const GetFontError = error{
+        OutOfMemory,
+        Unexpected,
+    };
+
+    pub fn GetFont(self: *IDWriteFontList, index: UINT32) GetFontError!*IDWriteFont {
+        var font: *IDWriteFont = undefined;
+
+        const hr = self.vtable.GetFont(self, index, &font);
+        return switch (hr) {
+            windows.S_OK => font,
+            windows.E_OUTOFMEMORY => error.OutOfMemory,
+            windows.E_POINTER => unreachable,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
     }
 };
 
@@ -530,6 +577,20 @@ pub const IDWriteFont = extern struct {
 
     pub inline fn Release(self: *IDWriteFont) void {
         IUnknown.Release(@ptrCast(self));
+    }
+
+    pub inline fn GetWeight(self: *IDWriteFont) DWRITE_FONT_WEIGHT {
+        const FnType = fn (*IDWriteFont) callconv(WINAPI) DWRITE_FONT_WEIGHT;
+        const get_weight: *const FnType = @ptrCast(self.vtable[4]);
+
+        return get_weight(self);
+    }
+
+    pub inline fn GetStyle(self: *IDWriteFont) DWRITE_FONT_STYLE {
+        const FnType = fn (*IDWriteFont) callconv(WINAPI) DWRITE_FONT_STYLE;
+        const get_style: *const FnType = @ptrCast(self.vtable[6]);
+
+        return get_style(self);
     }
 };
 

@@ -173,9 +173,11 @@ pub const DirectWrite = struct {
         //const font_family_len = dw_font_collection.GetFontFamilyCount();
         //var font_family_i: windows.UINT32 = 0;
 
-        var sum: usize = 0;
-        for (0..dw_font_collection.GetFontFamilyCount()) |i| {
-            const dw_font_family = try dw_font_collection.GetFontFamily(@intCast(i));
+        const family_count = dw_font_collection.GetFontFamilyCount();
+        var family_index: windows.UINT32 = 0;
+
+        while (family_index < family_count) : (family_index += 1) {
+            const dw_font_family = try dw_font_collection.GetFontFamily(family_index);
             defer dw_font_family.Release(); // mb dont release need to check if returned ref is 0 then ye releasing is bad
 
             const family_names = try dw_font_family.GetFamilyNames();
@@ -183,15 +185,21 @@ pub const DirectWrite = struct {
 
             assert(family_names.GetCount() > 0);
 
-            const index = family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
-                error.LocaleNameNotFound => 0, 
-                else => |e| return e,
-            };
+            const font_count = dw_font_family.GetFontCount();
+            var font_index: windows.UINT32 = 0;
 
-            sum += family_names.GetStringLength(index) + 1;
+            while (font_index < font_count) : (font_index += 1) {
+                const dw_font = try dw_font_family.GetFont(font_index);
+                defer dw_font.Release();
+
+                std.debug.print("{}\n", .{dw_font.GetStyle()});
+            }
+
+            //const index = family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
+                //error.LocaleNameNotFound => 0, 
+                //else => |e| return e,
+            //};
         }
-
-        std.debug.print("need to alloc: {d} bytes\n", .{sum});
 
         //while (font_family_i < font_family_len) : (font_family_i += 1) {
             //const dw_font_family = try dw_font_collection.GetFontFamily(font_family_i);
