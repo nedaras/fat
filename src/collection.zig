@@ -318,8 +318,6 @@ pub const DirectWrite = struct {
             }
 
             defer self.idx += 1;
-            
-            assert(@mod(self.family_names_idx, 2) == 0);
 
             const slice_ptr: [*:0]u8 = @ptrCast(&self.family_names_buf[self.family_names_idx]);
             const family = mem.span(slice_ptr);
