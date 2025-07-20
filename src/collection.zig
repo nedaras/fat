@@ -233,10 +233,53 @@ pub const DirectWrite = struct {
 
         const family_count = dw_font_collection.GetFontFamilyCount();
 
-        var family_names: std.ArrayList(u8) = .init(allocator);
+        var fonts_len: usize = 0;
+        var family_names_len: usize = 0;
+
+        var family_max_name_len: windows.UINT32 = 0;
+
+        {
+            var family_index: windows.UINT32 = 0;
+            while (family_index < family_count) : (family_index += 1) {
+                const dw_font_family = try dw_font_collection.GetFontFamily(family_index);
+                defer dw_font_family.Release(); 
+
+                const dw_family_names = try dw_font_family.GetFamilyNames();
+                defer dw_family_names.Release();
+
+                assert(dw_family_names.GetCount() > 0);
+
+                const index = dw_family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
+                    error.LocaleNameNotFound => 0, 
+                    else => |e| return e,
+                };
+
+                const family_name_len = dw_family_names.GetStringLength(index);
+
+                fonts_len += dw_font_family.GetFontCount();
+                family_names_len += family_name_len + 1;
+
+                family_max_name_len = @max(family_max_name_len, family_name_len + 1);
+            }
+        }
+
+        var wtf16_buf = try allocator.alloc(u16, family_max_name_len);
+        defer allocator.free(wtf16_buf);
+
+        var family_names: std.ArrayList(u8) = try .initCapacity(allocator, family_max_name_len);
         defer family_names.deinit();
 
         var family_index: windows.UINT32 = 0;
+        var font_index: windows.UINT32 = 0;
+
+        var fonts = try allocator.alloc(NamedFont, fonts_len);
+        errdefer {
+            for (0..font_index) |i| {
+                fonts[i].dw_font.Release();
+            }
+            allocator.free(fonts);
+        }
+
         while (family_index < family_count) : (family_index += 1) {
             const dw_font_family = try dw_font_collection.GetFontFamily(family_index);
             defer dw_font_family.Release(); 
@@ -244,52 +287,61 @@ pub const DirectWrite = struct {
             const dw_family_names = try dw_font_family.GetFamilyNames();
             defer dw_family_names.Release();
 
-            assert(dw_family_names.GetCount() > 0);
-
             const index = dw_family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
                 error.LocaleNameNotFound => 0, 
                 else => |e| return e,
             };
 
             const family_name_len = dw_family_names.GetStringLength(index);
-            var wtf16_buf: [256]u16 = undefined;
 
-            if (family_name_len + 1 > wtf16_buf.len) {
-                @panic("yikes");
-            }
-
-            _ = dw_family_names.GetString(index, &wtf16_buf) catch |err| return switch(err) {
+            _ = dw_family_names.GetString(index, wtf16_buf) catch |err| return switch(err) {
                 error.BufferTooSmall => unreachable,
                 else => |e| e,
             };
 
             const wtf16_family_name = wtf16_buf[0..family_name_len + 1];
-
             const wtf8_len = unicode.calcWtf8Len(wtf16_family_name);
 
             try family_names.ensureUnusedCapacity(wtf8_len);
             assert(unicode.wtf16LeToWtf8(family_names.unusedCapacitySlice(), wtf16_family_name) == wtf8_len);
+            defer family_names.items.len += wtf8_len;
 
-            family_names.items.len += wtf8_len;
+            const family_name_offset = family_names.items.len;
+            for (0..dw_font_family.GetFontCount()) |i| {
+                defer font_index += 1;
+
+                const dw_font = try dw_font_family.GetFont(@intCast(i));
+                fonts[font_index] = .{
+                    .family_name_off = family_name_offset,
+                    .dw_font = dw_font,
+                };
+            }
         }
+
+        assert(fonts_len == font_index);
 
         return .{
             .dw_font_collection = dw_font_collection,
             .allocator = allocator,
-            .family_names_buf = try family_names.toOwnedSlice(),
-            .family_names_idx = 0,
-            .count = family_count,
+            .fonts = fonts,
+            .family_names = try family_names.toOwnedSlice(),
+            .count = fonts_len,
             .idx = 0,
         };
     }
+
+    const NamedFont = struct {
+        family_name_off: usize,
+        dw_font: *windows.IDWriteFont,
+    };
 
     pub const FontIterator = struct {
         dw_font_collection: *windows.IDWriteFontCollection,
 
         allocator: Allocator,
 
-        family_names_buf: []u8,
-        family_names_idx: usize,
+        fonts: []NamedFont,
+        family_names: []u8,
 
         count: usize,
         idx: usize,
@@ -319,10 +371,10 @@ pub const DirectWrite = struct {
 
             defer self.idx += 1;
 
-            const slice_ptr: [*:0]u8 = @ptrCast(&self.family_names_buf[self.family_names_idx]);
-            const family = mem.span(slice_ptr);
+            const font = self.fonts[self.idx];
 
-            self.family_names_idx += family.len + 1;
+            const slice_ptr: [*:0]u8 = @ptrCast(&self.family_names[font.family_name_off]);
+            const family = mem.span(slice_ptr);
 
             return .{
                 .family = family,
@@ -333,7 +385,12 @@ pub const DirectWrite = struct {
         }
 
         pub fn deinit(self: FontIterator) void {
-            self.allocator.free(self.family_names_buf);
+            for (self.fonts) |font| {
+                font.dw_font.Release();
+            }
+
+            self.allocator.free(self.fonts);
+            self.allocator.free(self.family_names);
             self.dw_font_collection.Release();
         }
     };
