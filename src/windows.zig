@@ -374,7 +374,6 @@ pub const IDWriteFontCollection = extern struct {
     }
 
     pub const GetFontFamilyError = error{
-        OutOfMemory,
         Unexpected,
     };
 
@@ -387,7 +386,7 @@ pub const IDWriteFontCollection = extern struct {
         const hr = get_font_family(self, index, &fontFamily);
         return switch (hr) {
             windows.S_OK => fontFamily,
-            windows.E_OUTOFMEMORY => error.OutOfMemory,
+            windows.E_OUTOFMEMORY => unreachable, // it said that this func just does simple array access
             windows.E_POINTER => unreachable,
             else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
         };

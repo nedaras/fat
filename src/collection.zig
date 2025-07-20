@@ -3,6 +3,8 @@ const build_options = @import("build_options");
 const windows = @import("windows.zig");
 const fontconfig = @import("fontconfig.zig");
 const Library = @import("Library.zig");
+const mem = std.mem;
+const math = std.math;
 const unicode = std.unicode;
 const assert = std.debug.assert;
 const Allocator = std.mem.Allocator;
@@ -230,78 +232,51 @@ pub const DirectWrite = struct {
         errdefer dw_font_collection.Release();
 
         const family_count = dw_font_collection.GetFontFamilyCount();
-        var family_names_len: usize = 0;
 
-        {
-            var family_index: windows.UINT32 = 0;
-            while (family_index < family_count) : (family_index += 1) {
-                const dw_font_family = try dw_font_collection.GetFontFamily(family_index);
-                defer dw_font_family.Release(); // mb dont release need to check if returned ref is 0 then ye releasing is bad
+        var family_names: std.ArrayList(u8) = .init(allocator);
+        defer family_names.deinit();
 
-                const family_names = try dw_font_family.GetFamilyNames();
+        var family_index: windows.UINT32 = 0;
+        while (family_index < family_count) : (family_index += 1) {
+            const dw_font_family = try dw_font_collection.GetFontFamily(family_index);
+            defer dw_font_family.Release(); 
 
-                const iunknown: *windows.IUnknown = @ptrCast(family_names);
-                defer std.debug.print("refs: {d}\n", .{iunknown.vtable.Release(iunknown)});
+            const dw_family_names = try dw_font_family.GetFamilyNames();
+            defer dw_family_names.Release();
 
-                assert(family_names.GetCount() > 0);
+            assert(dw_family_names.GetCount() > 0);
 
-                const index = family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
-                    error.LocaleNameNotFound => 0, 
-                    else => |e| return e,
-                };
+            const index = dw_family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
+                error.LocaleNameNotFound => 0, 
+                else => |e| return e,
+            };
 
+            const family_name_len = dw_family_names.GetStringLength(index);
+            var wtf16_buf: [256]u16 = undefined;
 
-                family_names_len += family_names.GetStringLength(index) + 1; // null terminator
+            if (family_name_len + 1 > wtf16_buf.len) {
+                @panic("yikes");
             }
+
+            _ = dw_family_names.GetString(index, &wtf16_buf) catch |err| return switch(err) {
+                error.BufferTooSmall => unreachable,
+                else => |e| e,
+            };
+
+            const wtf16_family_name = wtf16_buf[0..family_name_len + 1];
+
+            const wtf8_len = unicode.calcWtf8Len(wtf16_family_name);
+
+            try family_names.ensureUnusedCapacity(wtf8_len);
+            assert(unicode.wtf16LeToWtf8(family_names.unusedCapacitySlice(), wtf16_family_name) == wtf8_len);
+
+            family_names.items.len += wtf8_len;
         }
-
-        // uisng arr list as we will just convert from wtf16 to wtf8 so there is a chance that our buffer will become bigger
-        var family_names_buf: std.ArrayList(u16) = try .initCapacity(allocator, family_names_len);
-        defer family_names_buf.deinit();
-         
-        {
-            var family_index: windows.UINT32 = 0;
-            while (family_index < family_count) : (family_index += 1) {
-                const dw_font_family = try dw_font_collection.GetFontFamily(family_index);
-                defer dw_font_family.Release(); 
-
-                const family_names = try dw_font_family.GetFamilyNames();
-                defer family_names.Release();
-
-                const index = family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
-                    error.LocaleNameNotFound => 0, 
-                    else => |e| return e,
-                };
-
-                // todo: check if zig has this somewhere
-                const unused_capacity = family_names_buf.unusedCapacitySlice();
-                try family_names_buf.ensureUnusedCapacity(family_names.GetStringLength(index) + 1);
-
-                const family_name = family_names.GetString(index, unused_capacity) catch |err| return switch (err) {
-                    error.BufferTooSmall => unreachable,
-                    else => |e| e,
-                };
-
-                const len = unicode.calcWtf8Len(family_name) + 1;
-                const wide_len = std.math.divCeil(usize, len, 2) catch unreachable;
-
-                try family_names_buf.ensureUnusedCapacity(wide_len);
-
-                const buf = std.mem.sliceAsBytes(unused_capacity)[0..len];
-
-                assert(unicode.wtf16LeToWtf8(buf, family_name) == len - 1);
-                buf[len - 1] = 0;
-
-                family_names_buf.items.len += wide_len;
-            }
-        }
-
-        std.debug.print("{s}\n", .{std.mem.sliceAsBytes(family_names_buf.items)});
 
         return .{
             .dw_font_collection = dw_font_collection,
             .allocator = allocator,
-            .family_names_buf = std.mem.sliceAsBytes(try family_names_buf.toOwnedSlice()),
+            .family_names_buf = try family_names.toOwnedSlice(),
             .family_names_idx = 0,
             .count = family_count,
             .idx = 0,
@@ -313,7 +288,7 @@ pub const DirectWrite = struct {
 
         allocator: Allocator,
 
-        family_names_buf: []align(@sizeOf(u16)) u8,
+        family_names_buf: []u8,
         family_names_idx: usize,
 
         count: usize,
@@ -346,12 +321,10 @@ pub const DirectWrite = struct {
             
             assert(@mod(self.family_names_idx, 2) == 0);
 
-            //const family = std.mem.span(self.);
-            const ptr: [*:0]u8 = @ptrCast(&self.family_names_buf[self.family_names_idx]);
-            const family = std.mem.span(ptr);
+            const slice_ptr: [*:0]u8 = @ptrCast(&self.family_names_buf[self.family_names_idx]);
+            const family = mem.span(slice_ptr);
 
-            // cuz these slices are aligned to u16 so yea
-            self.family_names_idx += (family.len + 1) + @mod((family.len + 1), 2);
+            self.family_names_idx += family.len + 1;
 
             return .{
                 .family = family,
