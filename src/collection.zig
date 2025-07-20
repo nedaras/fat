@@ -219,6 +219,9 @@ pub const FontConfig = struct {
     };
 };
 
+// TODO: first we clean this shit up and then we can move on
+// cuz this is fucking hell
+
 pub const DirectWrite = struct {
     pub fn initIterator(allocator: Allocator, library: Library, descriptor: Descriptor) InitError!FontIterator {
         _ = descriptor;
@@ -236,19 +239,11 @@ pub const DirectWrite = struct {
                 defer dw_font_family.Release(); // mb dont release need to check if returned ref is 0 then ye releasing is bad
 
                 const family_names = try dw_font_family.GetFamilyNames();
-                defer family_names.Release();
 
-                //assert(family_names.GetCount() > 0);
+                const iunknown: *windows.IUnknown = @ptrCast(family_names);
+                defer std.debug.print("refs: {d}\n", .{iunknown.vtable.Release(iunknown)});
 
-                //const font_count = dw_font_family.GetFontCount();
-                //var font_index: windows.UINT32 = 0;
-
-                //while (font_index < font_count) : (font_index += 1) {
-                //const dw_font = try dw_font_family.GetFont(font_index);
-                //defer dw_font.Release();
-
-                //std.debug.print("{}\n", .{dw_font.GetStyle()});
-                //}
+                assert(family_names.GetCount() > 0);
 
                 const index = family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
                     error.LocaleNameNotFound => 0, 
@@ -268,7 +263,7 @@ pub const DirectWrite = struct {
             var family_index: windows.UINT32 = 0;
             while (family_index < family_count) : (family_index += 1) {
                 const dw_font_family = try dw_font_collection.GetFontFamily(family_index);
-                defer dw_font_family.Release(); // mb dont release need to check if returned ref is 0 then ye releasing is bad
+                defer dw_font_family.Release(); 
 
                 const family_names = try dw_font_family.GetFamilyNames();
                 defer family_names.Release();
@@ -302,40 +297,6 @@ pub const DirectWrite = struct {
         }
 
         std.debug.print("{s}\n", .{std.mem.sliceAsBytes(family_names_buf.items)});
-
-        //while (font_family_i < font_family_len) : (font_family_i += 1) {
-            //const dw_font_family = try dw_font_collection.GetFontFamily(font_family_i);
-            //defer dw_font_family.Release();
-
-            // seems we cant get path without making a face so im thinking make
-            // path() func that would load our face and cache it 
-            // and if like load() is called we will pop our cached face but hmmm
-            // or idk dont expose path like just have load func cuz yea
-
-            //const names = try dw_font_family.GetFamilyNames();
-            //defer names.Release();
-
-            //assert(names.GetCount() > 0);
-            
-            //const idx = names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
-                //error.LocaleNameNotFound => 404, // just for debug just get 0 then cuz damm sad
-                //else => |e| return e,
-            //};
-
-            //var wbuf: [256]u16 = undefined;
-
-            //const wstr_len = names.GetStringLength(idx);
-            //wbuf[wstr_len] = 0;
-
-            //assert(wbuf.len > wstr_len);
-
-            //const name = wbuf[0..wstr_len:0];
-            //try names.GetString(idx, name);
-
-            //for (0..dw_font_family.GetFontCount()) |_| {
-                //std.debug.print("{}\n", .{unicode.fmtUtf16Le(name)});
-            //}
-        //}
 
         return .{
             .dw_font_collection = dw_font_collection,
