@@ -172,8 +172,8 @@ pub const FontConfig = struct {
             const family = (try fontconfig.FcPatternGetString(fc_pattern, "family", 0)).?;
             const size = (try fontconfig.FcPatternGetDouble(fc_pattern, "size", 0)).?;
 
-            const fc_weight: fontconfig.FcWeight = fontconfig.nearestWeight((try fontconfig.FcPatternGetInteger(fc_pattern, "weight", 0)).?) catch unreachable;
-            const fc_slant: fontconfig.FcSlant = @enumFromInt((try fontconfig.FcPatternGetInteger(fc_pattern, "slant", 0)).?);
+            const fc_weight: fontconfig.FcWeight = fontconfig.nearestWeight((try fontconfig.FcPatternGetInteger(fc_pattern, "weight", 0)).?) catch return error.Unexpected;
+            const fc_slant: fontconfig.FcSlant = @enumFromInt((try fontconfig.FcPatternGetInteger(fc_pattern, "slant", 0)).?); // todo: return unexpected if invalid
 
             const weight: FontWeight = switch (fc_weight) {
                 .FC_WEIGHT_THIN => .thin,
@@ -305,8 +305,8 @@ pub const DirectWrite = struct {
                 const dw_font = try dw_font_family.GetFont(@intCast(i));
                 defer font_index += 1;
 
-                // todo: we need to round it too
-                const weight: FontWeight = switch (dw_font.GetWeight()) {
+                const dw_weight = windows.nearestWeight(dw_font.GetWeight()) catch return error.Unexpected;
+                const weight: FontWeight = switch (dw_weight) {
                     .DWRITE_FONT_WEIGHT_THIN => .thin,
                     .DWRITE_FONT_WEIGHT_EXTRA_LIGHT,
                     .DWRITE_FONT_WEIGHT_ULTRA_LIGHT => .extralight,

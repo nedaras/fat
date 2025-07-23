@@ -116,6 +116,37 @@ pub const DWRITE_GLYPH_RUN = extern struct {
     bidiLevel: UINT32,
 };
 
+pub fn nearestWeight(weight: anytype) error{InvalidWeight}!DWRITE_FONT_WEIGHT {
+    @setRuntimeSafety(false);
+
+    // has to be in range of all valid FcWeight values
+    if (weight < 1 or weight > 999) {
+        return error.InvalidWeight;
+    }
+
+    const values = comptime std.enums.values(DWRITE_FONT_WEIGHT);
+    const weight_val: u8 = @intCast(weight);
+      
+    var best_weight: DWRITE_FONT_WEIGHT = undefined;
+    var best_diff: c_uint = undefined;
+
+    inline for (values, 0..) |curr_weight, i| {
+        const curr_weight_val = @intFromEnum(curr_weight);
+        const diff = @abs(curr_weight_val - weight_val);
+
+        if (i == 0 or diff < best_diff) {
+            best_diff = diff;
+            best_weight = curr_weight;
+        }
+
+        if (diff == 0) {
+            break;
+        }
+    }
+
+    return best_weight;
+}
+
 pub const IUnknown = extern struct {
     vtable: *const IUnknownVTable,
 
@@ -579,8 +610,9 @@ pub const IDWriteFont = extern struct {
         IUnknown.Release(@ptrCast(self));
     }
 
-    pub inline fn GetWeight(self: *IDWriteFont) DWRITE_FONT_WEIGHT {
-        const FnType = fn (*IDWriteFont) callconv(WINAPI) DWRITE_FONT_WEIGHT;
+    // todo: idk maybe return enum with _ as idk why not
+    pub inline fn GetWeight(self: *IDWriteFont) INT {
+        const FnType = fn (*IDWriteFont) callconv(WINAPI) INT;
         const get_weight: *const FnType = @ptrCast(self.vtable[4]);
 
         return get_weight(self);
