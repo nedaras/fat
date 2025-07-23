@@ -278,7 +278,7 @@ pub const DirectWrite = struct {
 
         var family_index: windows.UINT32 = 0;
         var font_index: windows.UINT32 = 0;
-        var wtf8_family_names_offset: usize = undefined;
+        var wtf8_family_names_offset: usize = 0;
 
         const wtf8_family_names_buf = try allocator.alloc(u8, wtf8_family_names_len);
         errdefer allocator.free(wtf8_family_names_buf);
