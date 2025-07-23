@@ -348,7 +348,7 @@ pub const DirectWrite = struct {
             descriptor: Descriptor,
 
             pub fn lessThan(ctx: @This(), a: FontData, b: FontData) bool {
-                return a.score(ctx.descriptor) < b.score(ctx.descriptor);
+                return a.score(ctx.descriptor) > b.score(ctx.descriptor);
             }
         };
 
