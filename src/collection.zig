@@ -233,10 +233,22 @@ pub const DirectWrite = struct {
 
         const family_count = dw_font_collection.GetFontFamilyCount();
 
-        var fonts_len: usize = 0;
-        var family_names_len: usize = 0;
+        var wtf16_family_name_buf: [256]u16 = undefined;
 
-        var family_max_name_len: windows.UINT32 = 0;
+        var wtf8_family_names_len: usize = 0;
+        var fonts_len: usize = 0;
+
+        //var family_names_len: usize = 0;
+
+        //var family_max_name_len: windows.UINT32 = 0;
+
+        // i think for now best way to handle this is
+        // by getting maximum wtf8len
+
+        // 1. get wtf8 buf len needed
+        //    get fonts len needed
+        // 2. alloc
+        // 3. loop again and fill data
 
         {
             var family_index: windows.UINT32 = 0;
@@ -254,25 +266,24 @@ pub const DirectWrite = struct {
                     else => |e| return e,
                 };
 
-                const family_name_len = dw_family_names.GetStringLength(index);
+                const wtf16_family_name = dw_family_names.GetString(index, &wtf16_family_name_buf) catch |err| return switch(err) {
+                    error.BufferTooSmall => @panic("TODO"),
+                    else => |e| e,
+                };
 
+                wtf8_family_names_len += unicode.calcWtf8Len(wtf16_family_name) + 1;
                 fonts_len += dw_font_family.GetFontCount();
-                family_names_len += family_name_len + 1;
-
-                family_max_name_len = @max(family_max_name_len, family_name_len + 1);
             }
         }
 
-        var wtf16_buf = try allocator.alloc(u16, family_max_name_len);
-        defer allocator.free(wtf16_buf);
-
-        var family_names: std.ArrayList(u8) = try .initCapacity(allocator, family_max_name_len);
-        defer family_names.deinit();
-
         var family_index: windows.UINT32 = 0;
         var font_index: windows.UINT32 = 0;
+        var wtf8_family_names_offset: usize = undefined;
 
-        var fonts = try allocator.alloc(NamedFont, fonts_len);
+        const wtf8_family_names_buf = try allocator.alloc(u8, wtf8_family_names_len);
+        errdefer allocator.free(wtf8_family_names_buf);
+
+        var fonts = try allocator.alloc(FontData, fonts_len);
         errdefer {
             for (0..font_index) |i| {
                 fonts[i].dw_font.Release();
@@ -292,55 +303,113 @@ pub const DirectWrite = struct {
                 else => |e| return e,
             };
 
-            const family_name_len = dw_family_names.GetStringLength(index);
-
-            _ = dw_family_names.GetString(index, wtf16_buf) catch |err| return switch(err) {
+            const family_name = dw_family_names.GetString(index, &wtf16_family_name_buf) catch |err| return switch(err) {
                 error.BufferTooSmall => unreachable,
                 else => |e| e,
             };
 
-            const wtf16_family_name = wtf16_buf[0..family_name_len + 1];
-            const wtf8_len = unicode.calcWtf8Len(wtf16_family_name);
+            const wtf16_family_name = wtf16_family_name_buf[0..family_name.len + 1];
+            const wtf8_family_name_len = unicode.wtf16LeToWtf8(wtf8_family_names_buf[wtf8_family_names_offset..], wtf16_family_name);
+            const wtf8_family_name = wtf8_family_names_buf[wtf8_family_names_offset..wtf8_family_names_offset + wtf8_family_name_len - 1:0];
 
-            try family_names.ensureUnusedCapacity(wtf8_len);
-            assert(unicode.wtf16LeToWtf8(family_names.unusedCapacitySlice(), wtf16_family_name) == wtf8_len);
-            defer family_names.items.len += wtf8_len;
+            wtf8_family_names_offset += wtf8_family_name_len;
 
-            const family_name_offset = family_names.items.len;
             for (0..dw_font_family.GetFontCount()) |i| {
+                const dw_font = try dw_font_family.GetFont(@intCast(i));
                 defer font_index += 1;
 
-                const dw_font = try dw_font_family.GetFont(@intCast(i));
+                const weight: FontWeight = switch (dw_font.GetWeight()) {
+                    .DWRITE_FONT_WEIGHT_THIN => .thin,
+                    .DWRITE_FONT_WEIGHT_EXTRA_LIGHT,
+                    .DWRITE_FONT_WEIGHT_ULTRA_LIGHT => .extralight,
+                    .DWRITE_FONT_WEIGHT_LIGHT => .light,
+                    .DWRITE_FONT_WEIGHT_SEMI_LIGHT => .semilight,
+                    .DWRITE_FONT_WEIGHT_NORMAL,
+                    .DWRITE_FONT_WEIGHT_REGULAR => .regular,
+                    .DWRITE_FONT_WEIGHT_MEDIUM => .medium,
+                    .DWRITE_FONT_WEIGHT_DEMI_BOLD,
+                    .DWRITE_FONT_WEIGHT_SEMI_BOLD => .demibold,
+                    .DWRITE_FONT_WEIGHT_BOLD => .bold,
+                    .DWRITE_FONT_WEIGHT_EXTRA_BOLD,
+                    .DWRITE_FONT_WEIGHT_ULTRA_BOLD => .extrabold,
+                    .DWRITE_FONT_WEIGHT_BLACK,
+                    .DWRITE_FONT_WEIGHT_HEAVY => .black,
+                    .DWRITE_FONT_WEIGHT_EXTRA_BLACK,
+                    .DWRITE_FONT_WEIGHT_ULTRA_BLACK => .extrablack,
+                };
+
+                const slant: FontSlant = switch (dw_font.GetStyle()) {
+                    .DWRITE_FONT_STYLE_NORMAL => .roman,
+                    .DWRITE_FONT_STYLE_OBLIQUE => .oblique,
+                    .DWRITE_FONT_STYLE_ITALIC => .italic,
+                };
+                
+
                 fonts[font_index] = .{
-                    .family_name_off = family_name_offset,
+                    .family_name = wtf8_family_name,
                     .dw_font = dw_font,
+                    .weight = weight,
+                    .slant = slant,
                 };
             }
         }
 
-        assert(fonts_len == font_index);
+        //assert(fonts_len == font_index);
+
+        //std.sort.block(FontData, fonts, {}, struct {
+            //fn inner(_: void, a: FontData, b: FontData) bool {
+                //return a.score(family_names.items) < b.score();
+            //}
+        //}.inner);
+
+        // now we need to sort out fonts by descriptor
 
         return .{
             .dw_font_collection = dw_font_collection,
             .allocator = allocator,
             .fonts = fonts,
-            .family_names = try family_names.toOwnedSlice(),
+            .family_names = wtf8_family_names_buf,
             .count = fonts_len,
             .idx = 0,
         };
     }
 
-    const NamedFont = struct {
-        family_name_off: usize,
+    const FontData = struct {
+        family_name: [:0]const u8,
         dw_font: *windows.IDWriteFont,
-    };
 
+        weight: FontWeight,
+        slant: FontSlant,
+
+
+        const Score = packed struct(u8) {
+            const Backing = @typeInfo(@This()).@"struct".backing_integer.?;
+
+            codepoint: bool = false,
+            family: bool = false,
+            weight: bool = false,
+            slant: bool = false,
+        };
+
+        pub fn score(font_data: FontData, family_names_buf: []const u8, descriptor: Descriptor) u8 {
+            var self: Score = .{};
+            if (descriptor.family) |lfamily| {
+                const slice_ptr: [*:0]u8 = @ptrCast(&family_names_buf[font_data.family_name_off]);
+                const rfamily = mem.span(slice_ptr);
+
+                self.family = mem.eql(lfamily, rfamily);
+            }
+
+            return @bitCast(self);
+        }
+    };
+    
     pub const FontIterator = struct {
         dw_font_collection: *windows.IDWriteFontCollection,
 
         allocator: Allocator,
 
-        fonts: []NamedFont,
+        fonts: []FontData,
         family_names: []u8,
 
         count: usize,
@@ -373,14 +442,11 @@ pub const DirectWrite = struct {
 
             const font = self.fonts[self.idx];
 
-            const slice_ptr: [*:0]u8 = @ptrCast(&self.family_names[font.family_name_off]);
-            const family = mem.span(slice_ptr);
-
             return .{
-                .family = family,
+                .family = font.family_name,
                 .size = 0.0,
-                .weight = .book,
-                .slant = .roman,
+                .weight = font.weight,
+                .slant = font.slant,
             };
         }
 
