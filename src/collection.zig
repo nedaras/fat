@@ -226,7 +226,6 @@ pub const FontConfig = struct {
 
 pub const DirectWrite = struct {
     pub fn initIterator(allocator: Allocator, library: Library, descriptor: Descriptor) InitError!FontIterator {
-        _ = descriptor;
 
         const dw_font_collection = try library.impl.dw_factory.GetSystemFontCollection(false);
         errdefer dw_font_collection.Release();
@@ -237,18 +236,6 @@ pub const DirectWrite = struct {
 
         var wtf8_family_names_len: usize = 0;
         var fonts_len: usize = 0;
-
-        //var family_names_len: usize = 0;
-
-        //var family_max_name_len: windows.UINT32 = 0;
-
-        // i think for now best way to handle this is
-        // by getting maximum wtf8len
-
-        // 1. get wtf8 buf len needed
-        //    get fonts len needed
-        // 2. alloc
-        // 3. loop again and fill data
 
         {
             var family_index: windows.UINT32 = 0;
@@ -318,6 +305,7 @@ pub const DirectWrite = struct {
                 const dw_font = try dw_font_family.GetFont(@intCast(i));
                 defer font_index += 1;
 
+                // todo: we need to round it too
                 const weight: FontWeight = switch (dw_font.GetWeight()) {
                     .DWRITE_FONT_WEIGHT_THIN => .thin,
                     .DWRITE_FONT_WEIGHT_EXTRA_LIGHT,
@@ -354,15 +342,17 @@ pub const DirectWrite = struct {
             }
         }
 
-        //assert(fonts_len == font_index);
+        assert(fonts_len == font_index);
 
-        //std.sort.block(FontData, fonts, {}, struct {
-            //fn inner(_: void, a: FontData, b: FontData) bool {
-                //return a.score(family_names.items) < b.score();
-            //}
-        //}.inner);
+        const Context = struct {
+            descriptor: Descriptor,
 
-        // now we need to sort out fonts by descriptor
+            pub fn lessThan(ctx: @This(), a: FontData, b: FontData) bool {
+                return a.score(ctx.descriptor) < b.score(ctx.descriptor);
+            }
+        };
+
+        std.sort.block(FontData, fonts, Context{ .descriptor = descriptor }, Context.lessThan);
 
         return .{
             .dw_font_collection = dw_font_collection,
@@ -381,7 +371,6 @@ pub const DirectWrite = struct {
         weight: FontWeight,
         slant: FontSlant,
 
-
         const Score = packed struct(u8) {
             const Backing = @typeInfo(@This()).@"struct".backing_integer.?;
 
@@ -389,15 +378,14 @@ pub const DirectWrite = struct {
             family: bool = false,
             weight: bool = false,
             slant: bool = false,
+            _pad: u4 = 0,
         };
 
-        pub fn score(font_data: FontData, family_names_buf: []const u8, descriptor: Descriptor) u8 {
+        pub fn score(font_data: FontData, descriptor: Descriptor) u8 {
             var self: Score = .{};
-            if (descriptor.family) |lfamily| {
-                const slice_ptr: [*:0]u8 = @ptrCast(&family_names_buf[font_data.family_name_off]);
-                const rfamily = mem.span(slice_ptr);
 
-                self.family = mem.eql(lfamily, rfamily);
+            if (descriptor.family) |family| {
+                self.family = mem.eql(u8, family, font_data.family_name);
             }
 
             return @bitCast(self);
