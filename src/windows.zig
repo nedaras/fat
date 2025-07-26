@@ -48,7 +48,11 @@ pub const DWRITE_FONT_FACE_TYPE = enum(INT) {
     DWRITE_FONT_FACE_TYPE_RAW_CFF,
 };
 
-pub const DWRITE_FONT_SIMULATIONS = enum(INT) { DWRITE_FONT_SIMULATIONS_NONE = 0x0000, DWRITE_FONT_SIMULATIONS_BOLD = 0x0001, DWRITE_FONT_SIMULATIONS_OBLIQUE = 0x0002, };
+pub const DWRITE_FONT_SIMULATIONS = enum(INT) {
+    DWRITE_FONT_SIMULATIONS_NONE = 0x0000,
+    DWRITE_FONT_SIMULATIONS_BOLD = 0x0001,
+    DWRITE_FONT_SIMULATIONS_OBLIQUE = 0x0002,
+};
 
 pub const DWRITE_RENDERING_MODE = enum(INT) {
     DWRITE_RENDERING_MODE_DEFAULT,
@@ -60,12 +64,19 @@ pub const DWRITE_RENDERING_MODE = enum(INT) {
     DWRITE_RENDERING_MODE_OUTLINE,
 };
 
-pub const DWRITE_MEASURING_MODE = enum(INT) { DWRITE_MEASURING_MODE_NATURAL, DWRITE_MEASURING_MODE_GDI_CLASSIC, DWRITE_MEASURING_MODE_GDI_NATURAL, };
+pub const DWRITE_MEASURING_MODE = enum(INT) {
+    DWRITE_MEASURING_MODE_NATURAL,
+    DWRITE_MEASURING_MODE_GDI_CLASSIC,
+    DWRITE_MEASURING_MODE_GDI_NATURAL,
+};
 
-pub const DWRITE_TEXTURE_TYPE = enum(INT) { DWRITE_TEXTURE_ALIASED_1x1, DWRITE_TEXTURE_CLEARTYPE_3x1, };
+pub const DWRITE_TEXTURE_TYPE = enum(INT) {
+    DWRITE_TEXTURE_ALIASED_1x1,
+    DWRITE_TEXTURE_CLEARTYPE_3x1,
+};
 
 // todo: just pick one if theres two
-pub const DWRITE_FONT_WEIGHT = enum (INT) {
+pub const DWRITE_FONT_WEIGHT = enum(INT) {
     DWRITE_FONT_WEIGHT_THIN = 100,
     DWRITE_FONT_WEIGHT_EXTRA_LIGHT,
     DWRITE_FONT_WEIGHT_ULTRA_LIGHT = 200,
@@ -85,11 +96,7 @@ pub const DWRITE_FONT_WEIGHT = enum (INT) {
     DWRITE_FONT_WEIGHT_ULTRA_BLACK = 950,
 };
 
-pub const DWRITE_FONT_STYLE = enum(INT) {
-    DWRITE_FONT_STYLE_NORMAL,
-    DWRITE_FONT_STYLE_OBLIQUE,
-    DWRITE_FONT_STYLE_ITALIC
-};
+pub const DWRITE_FONT_STYLE = enum(INT) { DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STYLE_OBLIQUE, DWRITE_FONT_STYLE_ITALIC };
 
 pub const DWRITE_MATRIX = extern struct {
     m11: FLOAT,
@@ -126,7 +133,7 @@ pub fn nearestWeight(weight: anytype) error{InvalidWeight}!DWRITE_FONT_WEIGHT {
 
     const values = comptime std.enums.values(DWRITE_FONT_WEIGHT);
     const weight_val: u8 = @intCast(weight);
-      
+
     var best_weight: DWRITE_FONT_WEIGHT = undefined;
     var best_diff: c_uint = undefined;
 
@@ -424,10 +431,8 @@ pub const IDWriteFontCollection = extern struct {
     }
 };
 
-
 pub const IDWriteFontFamily = extern struct {
     vtable: [*]const *const anyopaque,
-
 
     pub inline fn QueryInterface(self: *IDWriteFontFamily, riid: REFIID, ppvObject: **anyopaque) IUnknown.QueryInterfaceError!void {
         return IUnknown.QueryInterface(@ptrCast(self), riid, ppvObject);
@@ -556,7 +561,7 @@ pub const IDWriteLocalizedStrings = extern struct {
         // if an idiot passes out of bounds index this could err
         const hr = self.vtable.GetLocaleName(self, index, localeName.ptr, length + 1);
         return switch (hr) {
-            windows.S_OK => localeName[0..length:0],
+            windows.S_OK => localeName[0..length :0],
             windows.E_POINTER => unreachable,
             else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
         };
@@ -583,7 +588,7 @@ pub const IDWriteLocalizedStrings = extern struct {
 
         const hr = self.vtable.GetString(self, index, stringBuffer.ptr, length + 1);
         return switch (hr) {
-            windows.S_OK => stringBuffer[0..length:0],
+            windows.S_OK => stringBuffer[0..length :0],
             windows.E_POINTER => unreachable,
             else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
         };
@@ -623,6 +628,16 @@ pub const IDWriteFont = extern struct {
         const get_style: *const FnType = @ptrCast(self.vtable[6]);
 
         return get_style(self);
+    }
+
+    pub fn HasCharacter(self: *IDWriteFont, unicodeValue: UINT32) bool {
+        const FnType = fn (*IDWriteFont, UINT32, *BOOL) callconv(WINAPI) HRESULT;
+        const has_character: *const FnType = @ptrCast(self.vtable[6]);
+
+        var exists: BOOL = undefined;
+        assert(has_character(self, unicodeValue, &exists) == windows.S_OK);
+
+        return exists == windows.TRUE;
     }
 };
 

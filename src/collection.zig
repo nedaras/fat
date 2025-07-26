@@ -177,24 +177,17 @@ pub const FontConfig = struct {
 
             const weight: FontWeight = switch (fc_weight) {
                 .FC_WEIGHT_THIN => .thin,
-                .FC_WEIGHT_EXTRALIGHT,
-                .FC_WEIGHT_ULTRALIGHT => .extralight,
+                .FC_WEIGHT_EXTRALIGHT, .FC_WEIGHT_ULTRALIGHT => .extralight,
                 .FC_WEIGHT_LIGHT => .light,
-                .FC_WEIGHT_DEMILIGHT,
-                .FC_WEIGHT_SEMILIGHT => .semilight,
+                .FC_WEIGHT_DEMILIGHT, .FC_WEIGHT_SEMILIGHT => .semilight,
                 .FC_WEIGHT_BOOK => .book,
-                .FC_WEIGHT_REGULAR,
-                .FC_WEIGHT_NORMAL =>  .regular,
+                .FC_WEIGHT_REGULAR, .FC_WEIGHT_NORMAL => .regular,
                 .FC_WEIGHT_MEDIUM => .medium,
-                .FC_WEIGHT_DEMIBOLD,
-                .FC_WEIGHT_SEMIBOLD => .demibold,
+                .FC_WEIGHT_DEMIBOLD, .FC_WEIGHT_SEMIBOLD => .demibold,
                 .FC_WEIGHT_BOLD => .bold,
-                .FC_WEIGHT_EXTRABOLD,
-                .FC_WEIGHT_ULTRABOLD => .extrabold,
-                .FC_WEIGHT_BLACK,
-                .FC_WEIGHT_HEAVY => .black,
-                .FC_WEIGHT_EXTRABLACK,
-                .FC_WEIGHT_ULTRABLACK => .extrablack,
+                .FC_WEIGHT_EXTRABOLD, .FC_WEIGHT_ULTRABOLD => .extrabold,
+                .FC_WEIGHT_BLACK, .FC_WEIGHT_HEAVY => .black,
+                .FC_WEIGHT_EXTRABLACK, .FC_WEIGHT_ULTRABLACK => .extrablack,
             };
 
             const slant: FontSlant = switch (fc_slant) {
@@ -226,7 +219,6 @@ pub const FontConfig = struct {
 
 pub const DirectWrite = struct {
     pub fn initIterator(allocator: Allocator, library: Library, descriptor: Descriptor) InitError!FontIterator {
-
         const dw_font_collection = try library.impl.dw_factory.GetSystemFontCollection(false);
         errdefer dw_font_collection.Release();
 
@@ -241,7 +233,7 @@ pub const DirectWrite = struct {
             var family_index: windows.UINT32 = 0;
             while (family_index < family_count) : (family_index += 1) {
                 const dw_font_family = try dw_font_collection.GetFontFamily(family_index);
-                defer dw_font_family.Release(); 
+                defer dw_font_family.Release();
 
                 const dw_family_names = try dw_font_family.GetFamilyNames();
                 defer dw_family_names.Release();
@@ -249,11 +241,11 @@ pub const DirectWrite = struct {
                 assert(dw_family_names.GetCount() > 0);
 
                 const index = dw_family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
-                    error.LocaleNameNotFound => 0, 
+                    error.LocaleNameNotFound => 0,
                     else => |e| return e,
                 };
 
-                const wtf16_family_name = dw_family_names.GetString(index, &wtf16_family_name_buf) catch |err| return switch(err) {
+                const wtf16_family_name = dw_family_names.GetString(index, &wtf16_family_name_buf) catch |err| return switch (err) {
                     error.BufferTooSmall => @panic("TODO"),
                     else => |e| e,
                 };
@@ -280,24 +272,24 @@ pub const DirectWrite = struct {
 
         while (family_index < family_count) : (family_index += 1) {
             const dw_font_family = try dw_font_collection.GetFontFamily(family_index);
-            defer dw_font_family.Release(); 
+            defer dw_font_family.Release();
 
             const dw_family_names = try dw_font_family.GetFamilyNames();
             defer dw_family_names.Release();
 
             const index = dw_family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
-                error.LocaleNameNotFound => 0, 
+                error.LocaleNameNotFound => 0,
                 else => |e| return e,
             };
 
-            const family_name = dw_family_names.GetString(index, &wtf16_family_name_buf) catch |err| return switch(err) {
+            const family_name = dw_family_names.GetString(index, &wtf16_family_name_buf) catch |err| return switch (err) {
                 error.BufferTooSmall => unreachable,
                 else => |e| e,
             };
 
-            const wtf16_family_name = wtf16_family_name_buf[0..family_name.len + 1];
+            const wtf16_family_name = wtf16_family_name_buf[0 .. family_name.len + 1];
             const wtf8_family_name_len = unicode.wtf16LeToWtf8(wtf8_family_names_buf[wtf8_family_names_offset..], wtf16_family_name);
-            const wtf8_family_name = wtf8_family_names_buf[wtf8_family_names_offset..wtf8_family_names_offset + wtf8_family_name_len - 1:0];
+            const wtf8_family_name = wtf8_family_names_buf[wtf8_family_names_offset .. wtf8_family_names_offset + wtf8_family_name_len - 1 :0];
 
             wtf8_family_names_offset += wtf8_family_name_len;
 
@@ -308,22 +300,16 @@ pub const DirectWrite = struct {
                 const dw_weight = windows.nearestWeight(dw_font.GetWeight()) catch return error.Unexpected;
                 const weight: FontWeight = switch (dw_weight) {
                     .DWRITE_FONT_WEIGHT_THIN => .thin,
-                    .DWRITE_FONT_WEIGHT_EXTRA_LIGHT,
-                    .DWRITE_FONT_WEIGHT_ULTRA_LIGHT => .extralight,
+                    .DWRITE_FONT_WEIGHT_EXTRA_LIGHT, .DWRITE_FONT_WEIGHT_ULTRA_LIGHT => .extralight,
                     .DWRITE_FONT_WEIGHT_LIGHT => .light,
                     .DWRITE_FONT_WEIGHT_SEMI_LIGHT => .semilight,
-                    .DWRITE_FONT_WEIGHT_NORMAL,
-                    .DWRITE_FONT_WEIGHT_REGULAR => .regular,
+                    .DWRITE_FONT_WEIGHT_NORMAL, .DWRITE_FONT_WEIGHT_REGULAR => .regular,
                     .DWRITE_FONT_WEIGHT_MEDIUM => .medium,
-                    .DWRITE_FONT_WEIGHT_DEMI_BOLD,
-                    .DWRITE_FONT_WEIGHT_SEMI_BOLD => .demibold,
+                    .DWRITE_FONT_WEIGHT_DEMI_BOLD, .DWRITE_FONT_WEIGHT_SEMI_BOLD => .demibold,
                     .DWRITE_FONT_WEIGHT_BOLD => .bold,
-                    .DWRITE_FONT_WEIGHT_EXTRA_BOLD,
-                    .DWRITE_FONT_WEIGHT_ULTRA_BOLD => .extrabold,
-                    .DWRITE_FONT_WEIGHT_BLACK,
-                    .DWRITE_FONT_WEIGHT_HEAVY => .black,
-                    .DWRITE_FONT_WEIGHT_EXTRA_BLACK,
-                    .DWRITE_FONT_WEIGHT_ULTRA_BLACK => .extrablack,
+                    .DWRITE_FONT_WEIGHT_EXTRA_BOLD, .DWRITE_FONT_WEIGHT_ULTRA_BOLD => .extrabold,
+                    .DWRITE_FONT_WEIGHT_BLACK, .DWRITE_FONT_WEIGHT_HEAVY => .black,
+                    .DWRITE_FONT_WEIGHT_EXTRA_BLACK, .DWRITE_FONT_WEIGHT_ULTRA_BLACK => .extrablack,
                 };
 
                 const slant: FontSlant = switch (dw_font.GetStyle()) {
@@ -331,7 +317,6 @@ pub const DirectWrite = struct {
                     .DWRITE_FONT_STYLE_OBLIQUE => .oblique,
                     .DWRITE_FONT_STYLE_ITALIC => .italic,
                 };
-                
 
                 fonts[font_index] = .{
                     .family_name = wtf8_family_name,
@@ -384,6 +369,10 @@ pub const DirectWrite = struct {
         pub fn score(font_data: FontData, descriptor: Descriptor) u8 {
             var self: Score = .{};
 
+            if (descriptor.codepoint != 0) {
+                self.codepoint = font_data.dw_font.HasCharacter(descriptor.codepoint);
+            }
+
             if (descriptor.family) |family| {
                 self.family = mem.eql(u8, family, font_data.family_name);
             }
@@ -391,7 +380,7 @@ pub const DirectWrite = struct {
             return @bitCast(self);
         }
     };
-    
+
     pub const FontIterator = struct {
         dw_font_collection: *windows.IDWriteFontCollection,
 

@@ -51,6 +51,8 @@ int main() {
   //fclose(out);
 
   fat_collection_descriptor_t descriptor = {0};
+  descriptor.codepoint = 0x5B57;
+
   err = fat_font_collection(lib, descriptor, &collection);
   if (err != fat_error_ok) {
     printf("fat_font_collection failed: %s\n", fat_error_name(err));

@@ -24,7 +24,7 @@ pub const FcMatchKind = enum(c_uint) {
 };
 
 // todo: just pick one if theres two
-pub const FcWeight = enum (u8) {
+pub const FcWeight = enum(u8) {
     FC_WEIGHT_THIN = 0,
     FC_WEIGHT_EXTRALIGHT,
     FC_WEIGHT_ULTRALIGHT = 40,
@@ -62,15 +62,17 @@ pub fn nearestWeight(weight: anytype) error{InvalidWeight}!FcWeight {
 
     const values = comptime std.enums.values(FcWeight);
     const weight_val: u8 = @intCast(weight);
-      
+
     var best_weight: FcWeight = undefined;
     var best_diff: u8 = undefined;
 
     inline for (values, 0..) |curr_weight, i| {
         const curr_weight_val = @intFromEnum(curr_weight);
         // todo: if im not bored o could make this line branchless
-        const diff = if (weight_val > curr_weight_val) 
-            weight_val - curr_weight_val else curr_weight_val - weight_val;
+        const diff = if (weight_val > curr_weight_val)
+            weight_val - curr_weight_val
+        else
+            curr_weight_val - weight_val;
 
         if (i == 0 or diff < best_diff) {
             best_diff = diff;
@@ -85,7 +87,14 @@ pub fn nearestWeight(weight: anytype) error{InvalidWeight}!FcWeight {
     return best_weight;
 }
 
-pub const FcResult = enum(c_uint) { FcResultMatch, FcResultNoMatch, FcResultTypeMismatch, FcResultNoId, FcResultOutOfMemory, _, };
+pub const FcResult = enum(c_uint) {
+    FcResultMatch,
+    FcResultNoMatch,
+    FcResultTypeMismatch,
+    FcResultNoId,
+    FcResultOutOfMemory,
+    _,
+};
 
 // kinda sucks when we dont have info to errors
 pub const Error = error{
