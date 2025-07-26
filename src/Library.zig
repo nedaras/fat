@@ -43,7 +43,7 @@ pub inline fn openFace(self: *const Library, sub_path: [:0]const u8, options: Fa
     return Face.openFace(self.*, sub_path, options);
 }
 
-pub inline fn fontCollection(self: *Library, allocator: std.mem.Allocator, descriptor: collection.Descriptor) !collection.GenericFontIterator {
+pub inline fn fontCollection(self: *Library, allocator: std.mem.Allocator, descriptor: collection.Descriptor) !collection.FontIterator {
     if (font_backend.hasFontConfig()) {
         if (self.fc_config == null) {
             self.fc_config = try fontconfig.FcInitLoadConfigAndFonts();

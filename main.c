@@ -33,6 +33,7 @@ int main() {
 
   printf("idx: %d\n", idx);
 
+  // todo: change these names too
   fat_face_glyph_render_t glyph;
   err = fat_face_render_glyph(face, idx, &glyph);
   if (err != fat_error_ok) {
@@ -53,7 +54,7 @@ int main() {
   fat_collection_descriptor_t descriptor = {0};
   descriptor.codepoint = 0x5B57;
 
-  err = fat_font_collection(lib, descriptor, &collection);
+  err = fat_open_collection(lib, descriptor, &collection);
   if (err != fat_error_ok) {
     printf("fat_font_collection failed: %s\n", fat_error_name(err));
     goto err;
@@ -61,7 +62,7 @@ int main() {
 
   while (true) {
     fat_deferred_face_t* deffered_face = NULL;
-    err = fat_font_collection_next(collection, &deffered_face);
+    err = fat_collection_next(collection, &deffered_face);
     if (err != fat_error_ok) {
       printf("fat_font_collection_next failed: %s\n", fat_error_name(err));
       goto err;
@@ -77,15 +78,15 @@ int main() {
     fat_deffered_face_done(deffered_face);
   }
 
-  fat_font_collection_done(collection);
-  fat_face_glyph_render_done(glyph);
+  fat_collection_done(collection);
+  fat_face_glyph_render_done(glyph); // leaks on error
   fat_face_done(face);
   fat_library_done(lib);
 
   return 0;
 
 err:
-  fat_font_collection_done(collection);
+  fat_collection_done(collection);
   fat_face_done(face);
   fat_library_done(lib);
 

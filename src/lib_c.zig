@@ -133,10 +133,10 @@ export fn fat_face_glyph_render_done(cglyph: Face.GlyphRender.C) void {
     glyph.deinit(c_allocator);
 }
 
-export fn fat_font_collection(o_library: ?*Library, descriptor: collection.Descriptor.C, o_font_iterator: ?**collection.GenericFontIterator) fat_error_e {
+export fn fat_open_collection(o_library: ?*Library, descriptor: collection.Descriptor.C, o_font_iterator: ?**collection.FontIterator) fat_error_e {
     const library = o_library orelse return fat_error_e.invalid_pointer;
     const out_font_iterator = o_font_iterator orelse return fat_error_e.invalid_pointer;
-    const font_iterator = c_allocator.create(collection.GenericFontIterator) catch return fat_error_e.out_of_memory;
+    const font_iterator = c_allocator.create(collection.FontIterator) catch return fat_error_e.out_of_memory;
 
     font_iterator.* = library.fontCollection(c_allocator, .{
         .family = if (descriptor.family) |f| std.mem.span(f) else null,
@@ -155,7 +155,7 @@ export fn fat_font_collection(o_library: ?*Library, descriptor: collection.Descr
     return fat_error_e.ok;
 }
 
-export fn fat_font_collection_done(o_font_iterator: ?*collection.GenericFontIterator) void {
+export fn fat_collection_done(o_font_iterator: ?*collection.FontIterator) void {
     const font_iterator = o_font_iterator orelse return;
 
     font_iterator.deinit();
@@ -164,10 +164,10 @@ export fn fat_font_collection_done(o_font_iterator: ?*collection.GenericFontIter
 
 // ugly af and we're allocating on null which is rly dumb
 // todo: im stoopid why should i even allocate result when i dont know if i even have the result
-export fn fat_font_collection_next(o_font_iterator: ?*collection.GenericFontIterator, o_deffered_face: ?*?*collection.GenericFontIterator.Font) fat_error_e {
+export fn fat_collection_next(o_font_iterator: ?*collection.FontIterator, o_deffered_face: ?*?*collection.FontIterator.Font) fat_error_e {
     const font_iterator = o_font_iterator orelse return fat_error_e.invalid_pointer;
     const out_deffered_face = o_deffered_face orelse return fat_error_e.invalid_pointer;
-    const deffered_face = c_allocator.create(collection.GenericFontIterator.Font) catch return fat_error_e.out_of_memory;
+    const deffered_face = c_allocator.create(collection.FontIterator.Font) catch return fat_error_e.out_of_memory;
 
     // if (try font_iterator.next()) |x| now we know we have `x` so we can allocate result
 
@@ -187,14 +187,14 @@ export fn fat_font_collection_next(o_font_iterator: ?*collection.GenericFontIter
     return fat_error_e.ok;
 }
 
-export fn fat_deffered_face_done(o_deffered_face: ?*collection.GenericFontIterator.Font) void {
+export fn fat_deffered_face_done(o_deffered_face: ?*collection.FontIterator.Font) void {
     const deffered_face = o_deffered_face orelse return;
 
     deffered_face.deinit();
     c_allocator.destroy(deffered_face);
 }
 
-export fn fat_deffered_face_query_info(o_deffered_face: ?*collection.GenericFontIterator.Font) FaceInfo {
+export fn fat_deffered_face_query_info(o_deffered_face: ?*collection.FontIterator.Font) FaceInfo {
     const deffered_face = o_deffered_face orelse return .{
         .family = "",
         .size = 0.0,

@@ -615,6 +615,10 @@ pub const IDWriteFont = extern struct {
         IUnknown.Release(@ptrCast(self));
     }
 
+    pub inline fn AddRef(self: *IDWriteFont) ULONG {
+        return IUnknown.AddRef(@ptrCast(self));
+    }
+
     // todo: idk maybe return enum with _ as idk why not
     pub inline fn GetWeight(self: *IDWriteFont) INT {
         const FnType = fn (*IDWriteFont) callconv(WINAPI) INT;

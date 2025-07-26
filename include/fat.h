@@ -51,6 +51,7 @@ typedef enum {
   fat_font_slant_oblique,
 } fat_font_slant_e;
 
+// todo: i mean we should normalize these weights ig as using enum for it is just bad
 typedef uint8_t fat_font_weight_t;
 typedef uint8_t fat_font_slant_t;
 
@@ -104,11 +105,11 @@ fat_error_e fat_face_render_glyph(fat_face_t* face, uint32_t glyph_index, fat_fa
 
 void fat_face_glyph_render_done(fat_face_glyph_render_t glyph);
 
-fat_error_e fat_font_collection(fat_library_t* library, fat_collection_descriptor_t descriptor, fat_font_iterator_t** font_iterator);
+fat_error_e fat_open_collection(fat_library_t* library, fat_collection_descriptor_t descriptor, fat_font_iterator_t** font_iterator);
 
-void fat_font_collection_done(fat_font_iterator_t* font_iterator);
+void fat_collection_done(fat_font_iterator_t* font_iterator);
 
-fat_error_e fat_font_collection_next(fat_font_iterator_t* font_iterator, fat_deferred_face_t** deffered_face);
+fat_error_e fat_collection_next(fat_font_iterator_t* font_iterator, fat_deferred_face_t** deffered_face);
 
 void fat_deffered_face_done(fat_deferred_face_t* deffered_face);
 
