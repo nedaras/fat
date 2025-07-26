@@ -632,7 +632,7 @@ pub const IDWriteFont = extern struct {
 
     pub fn HasCharacter(self: *IDWriteFont, unicodeValue: UINT32) bool {
         const FnType = fn (*IDWriteFont, UINT32, *BOOL) callconv(WINAPI) HRESULT;
-        const has_character: *const FnType = @ptrCast(self.vtable[6]);
+        const has_character: *const FnType = @ptrCast(self.vtable[12]);
 
         var exists: BOOL = undefined;
         assert(has_character(self, unicodeValue, &exists) == windows.S_OK);
