@@ -25,9 +25,9 @@ pub fn build(b: *std.Build) void {
 
     options_mod.addOptions("build_options", options);
 
-    // bad but will work it out
+    // bad but will work it out we need like c options
     const lib_mod = b.addModule("fat", .{
-        .root_source_file = b.path("src/Library.zig"),
+        .root_source_file = b.path("src/lib.zig"),
         .target = target,
         .optimize = optimize,
     });
