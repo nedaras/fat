@@ -89,16 +89,16 @@ pub fn initIterator(allocator: Allocator, library: Library, descriptor: collecti
             const dw_weight = windows.nearestWeight(dw_font.GetWeight()) catch return error.Unexpected;
             const weight: collection.FontWeight = switch (dw_weight) {
                 .DWRITE_FONT_WEIGHT_THIN => .thin,
-                .DWRITE_FONT_WEIGHT_EXTRA_LIGHT, .DWRITE_FONT_WEIGHT_ULTRA_LIGHT => .extralight,
+                .DWRITE_FONT_WEIGHT_EXTRA_LIGHT => .extralight,
                 .DWRITE_FONT_WEIGHT_LIGHT => .light,
                 .DWRITE_FONT_WEIGHT_SEMI_LIGHT => .semilight,
-                .DWRITE_FONT_WEIGHT_NORMAL, .DWRITE_FONT_WEIGHT_REGULAR => .regular,
+                .DWRITE_FONT_WEIGHT_NORMAL => .regular,
                 .DWRITE_FONT_WEIGHT_MEDIUM => .medium,
-                .DWRITE_FONT_WEIGHT_DEMI_BOLD, .DWRITE_FONT_WEIGHT_SEMI_BOLD => .demibold,
+                .DWRITE_FONT_WEIGHT_DEMI_BOLD => .demibold,
                 .DWRITE_FONT_WEIGHT_BOLD => .bold,
-                .DWRITE_FONT_WEIGHT_EXTRA_BOLD, .DWRITE_FONT_WEIGHT_ULTRA_BOLD => .extrabold,
-                .DWRITE_FONT_WEIGHT_BLACK, .DWRITE_FONT_WEIGHT_HEAVY => .black,
-                .DWRITE_FONT_WEIGHT_EXTRA_BLACK, .DWRITE_FONT_WEIGHT_ULTRA_BLACK => .extrablack,
+                .DWRITE_FONT_WEIGHT_EXTRA_BOLD => .extrabold,
+                .DWRITE_FONT_WEIGHT_BLACK => .black,
+                .DWRITE_FONT_WEIGHT_EXTRA_BLACK => .extrablack,
             };
 
             const slant: collection.FontSlant = switch (dw_font.GetStyle()) {

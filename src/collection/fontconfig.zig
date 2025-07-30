@@ -89,17 +89,17 @@ pub const FontIterator = struct {
 
         const weight: collection.FontWeight = switch (fc_weight) {
             .FC_WEIGHT_THIN => .thin,
-            .FC_WEIGHT_EXTRALIGHT, .FC_WEIGHT_ULTRALIGHT => .extralight,
+            .FC_WEIGHT_EXTRALIGHT => .extralight,
             .FC_WEIGHT_LIGHT => .light,
-            .FC_WEIGHT_DEMILIGHT, .FC_WEIGHT_SEMILIGHT => .semilight,
+            .FC_WEIGHT_SEMILIGHT => .semilight,
             .FC_WEIGHT_BOOK => .book,
-            .FC_WEIGHT_REGULAR, .FC_WEIGHT_NORMAL => .regular,
+            .FC_WEIGHT_REGULAR => .regular,
             .FC_WEIGHT_MEDIUM => .medium,
-            .FC_WEIGHT_DEMIBOLD, .FC_WEIGHT_SEMIBOLD => .demibold,
+            .FC_WEIGHT_DEMIBOLD => .demibold,
             .FC_WEIGHT_BOLD => .bold,
-            .FC_WEIGHT_EXTRABOLD, .FC_WEIGHT_ULTRABOLD => .extrabold,
-            .FC_WEIGHT_BLACK, .FC_WEIGHT_HEAVY => .black,
-            .FC_WEIGHT_EXTRABLACK, .FC_WEIGHT_ULTRABLACK => .extrablack,
+            .FC_WEIGHT_EXTRABOLD => .extrabold,
+            .FC_WEIGHT_BLACK => .black,
+            .FC_WEIGHT_EXTRABLACK => .extrablack,
         };
 
         const slant: collection.FontSlant = switch (fc_slant) {
