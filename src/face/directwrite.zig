@@ -1,23 +1,22 @@
 const std = @import("std");
 const windows = @import("../windows.zig");
 const shared = @import("shared.zig");
-const Library = @import("../Library.zig");
 const assert = std.debug.assert;
 const Allocator = std.mem.Allocator;
 
 pub const Face = struct {
-    library: Library,
+    library: *windows.IDWriteFactory,
 
     dw_face: *windows.IDWriteFontFace,
 
     size: shared.DesiredSize,
 
-    pub fn openFace(library: Library, sub_path: [:0]const u8, options: shared.OpenFaceOptions) !Face {
+    pub fn openFace(backend: *windows.IDWriteFactory, sub_path: [:0]const u8, options: shared.OpenFaceOptions) !Face {
         var tmp_path: windows.PathSpace = undefined;
         tmp_path.len = try std.unicode.wtf8ToWtf16Le(&tmp_path.data, sub_path);
         tmp_path.data[tmp_path.len] = 0;
 
-        const font_file = library.impl.dw_factory.CreateFontFileReference(tmp_path.span(), null) catch |err| return switch (err) {
+        const font_file = try backend.CreateFontFileReference(tmp_path.span(), null) catch |err| return switch (err) {
             error.FontNotFound, error.AccessDenied => error.FailedToOpen,
             else => |e| e,
         };
@@ -30,11 +29,11 @@ pub const Face = struct {
 
         try font_file.Analyze(&file_type, &face_type, &faces);
 
-        const dw_face = try library.impl.dw_factory.CreateFontFace(face_type, &.{font_file}, options.face_index, .DWRITE_FONT_SIMULATIONS_NONE);
+        const dw_face = try backend.CreateFontFace(face_type, &.{font_file}, options.face_index, .DWRITE_FONT_SIMULATIONS_NONE);
         errdefer dw_face.Release();
 
         return .{
-            .library = library,
+            .library = backend,
             .dw_face = dw_face,
             .size = options.size,
         };

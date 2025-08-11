@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const build_options = @import("build_options");
-const Library = @import("Library.zig");
+const library = @import("library.zig");
 const directwrite = @import("face/directwrite.zig");
 const freetype = @import("face/freetype.zig");
 const shared = @import("face/shared.zig");
@@ -24,9 +24,9 @@ pub const OpenFaceError = error{
 };
 
 /// Open a new font face with the given file path.
-pub fn openFace(library: Library, sub_path: [:0]const u8, options: OpenFaceOptions) OpenFaceError!Face {
+pub inline fn openFace(backend: library.FontBackend, sub_path: [:0]const u8, options: OpenFaceOptions) OpenFaceError!Face {
     return .{
-        .impl = try Impl.openFace(library, sub_path, options),
+        .impl = try Impl.openFace(backend, sub_path, options),
     };
 }
 

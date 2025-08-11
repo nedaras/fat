@@ -1,11 +1,11 @@
 const std = @import("std");
 const collection = @import("../collection.zig");
 const fontconfig = @import("../fontconfig.zig");
-const Library = @import("../Library.zig");
+const Library = @import("../library.zig");
 const mem = std.mem;
 const Allocator = mem.Allocator;
 
-pub fn initIterator(_: Allocator, library: Library, descriptor: collection.Descriptor) !FontIterator {
+pub fn initIterator(_: Allocator, fc_config: *fontconfig.FcConfig, descriptor: collection.Descriptor) !FontIterator {
     const fc_pattern = try fontconfig.FcPatternCreate();
     errdefer fontconfig.FcPatternDestroy(fc_pattern);
 
@@ -29,14 +29,14 @@ pub fn initIterator(_: Allocator, library: Library, descriptor: collection.Descr
         fontconfig.FcPatternAddDouble(fc_pattern, "size", descriptor.size);
     }
 
-    fontconfig.FcConfigSubstitute(library.fc_config.?, fc_pattern, .FcMatchPattern);
+    fontconfig.FcConfigSubstitute(fc_config, fc_pattern, .FcMatchPattern);
     fontconfig.FcDefaultSubstitute(fc_pattern);
 
-    const fc_font_set = try fontconfig.FcFontSort(library.fc_config.?, fc_pattern, false, null);
+    const fc_font_set = try fontconfig.FcFontSort(fc_config, fc_pattern, false, null);
     errdefer fontconfig.FcFontSetDestroy(fc_font_set);
 
     return .{
-        .fc_config = library.fc_config.?,
+        .fc_config = fc_config,
         .fc_pattern = fc_pattern,
         .fc_font_set = fc_font_set,
         .idx = 0,

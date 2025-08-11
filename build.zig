@@ -27,7 +27,7 @@ pub fn build(b: *std.Build) void {
 
     // bad but will work it out we need like c options
     const lib_mod = b.addModule("fat", .{
-        .root_source_file = b.path("src/lib.zig"),
+        .root_source_file = b.path("src/library.zig"),
         .target = target,
         .optimize = optimize,
     });
@@ -39,14 +39,14 @@ pub fn build(b: *std.Build) void {
         .root_module = lib_mod,
     });
 
-    lib.linkLibC();
-    lib.installHeader(b.path("include/fat.h"), "fat.h");
+    //lib.installHeader(b.path("include/fat.h"), "fat.h");
 
     if (font_backend == .Directwrite) {
         lib.linkSystemLibrary("dwrite");
     }
 
     if (font_backend.hasFreetype()) {
+        lib.linkLibC();
         lib.linkSystemLibrary("freetype2");
     }
 
@@ -55,34 +55,6 @@ pub fn build(b: *std.Build) void {
     }
 
     b.installArtifact(lib);
-
-    //const exe_mod = b.createModule(.{
-        //.target = target,
-        //.optimize = optimize,
-    //});
-
-    //const exe = b.addExecutable(.{
-        //.name = "fat",
-        //.root_module = exe_mod,
-    //});
-
-    //exe.linkLibC();
-    //exe.linkLibrary(lib);
-
-    //exe.addCSourceFile(.{ .file = b.path("main.c") });
-
-    //b.installArtifact(exe);
-
-    //const run_cmd = b.addRunArtifact(exe);
-
-    //run_cmd.step.dependOn(b.getInstallStep());
-
-    //if (b.args) |args| {
-        //run_cmd.addArgs(args);
-    //}
-
-    //const run_step = b.step("run", "Run the app");
-    //run_step.dependOn(&run_cmd.step);
 
     const lib_unit_tests = b.addTest(.{
         .root_module = lib_mod,

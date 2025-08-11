@@ -2,7 +2,7 @@ const std = @import("std");
 const build_options = @import("build_options");
 const fontconfig = @import("collection/fontconfig.zig");
 const directwrite = @import("collection/directwrite.zig");
-const Library = @import("Library.zig");
+const library = @import("library.zig");
 const mem = std.mem;
 const Allocator = std.mem.Allocator;
 
@@ -81,16 +81,16 @@ pub const FontIterator = switch (build_options.font_backend) {
     .Freetype => Noop.FontIterator,
 };
 
-pub inline fn initIterator(allocator: Allocator, library: Library, descriptor: Descriptor) InitError!FontIterator {
+pub inline fn initIterator(allocator: Allocator, backend: library.CollectionBackend, descriptor: Descriptor) InitError!FontIterator {
     return switch (build_options.font_backend) {
-        .FontconfigFreetype => fontconfig.initIterator(allocator, library, descriptor),
-        .Directwrite => directwrite.initIterator(allocator, library, descriptor),
-        .Freetype => Noop.initIterator(allocator, library, descriptor),
+        .FontconfigFreetype => fontconfig.initIterator(allocator, backend, descriptor),
+        .Directwrite => directwrite.initIterator(allocator, backend, descriptor),
+        .Freetype => Noop.initIterator(allocator, backend, descriptor),
     };
 }
 
 pub const Noop = struct {
-    pub fn initIterator(_: Allocator, _: Library, _: Descriptor) InitError!Noop.FontIterator {
+    pub fn initIterator(_: Allocator, _: void, _: Descriptor) InitError!Noop.FontIterator {
         return .{};
     }
 

@@ -1,7 +1,6 @@
 const std = @import("std");
 const freetype = @import("../freetype.zig");
 const shared = @import("shared.zig");
-const Library = @import("../Library.zig");
 const Allocator = std.mem.Allocator;
 
 // todo: make freetype threadsafe dwrite
@@ -11,10 +10,10 @@ pub const Face = struct {
 
     size: shared.DesiredSize,
 
-    pub fn openFace(library: Library, sub_path: [:0]const u8, options: shared.OpenFaceOptions) !Face {
+    pub fn openFace(backend: freetype.FT_Library, sub_path: [:0]const u8, options: shared.OpenFaceOptions) !Face {
         var ft_face: freetype.FT_Face = undefined;
 
-        try freetype.FT_New_Face(library.impl.ft_library, sub_path, options.face_index, &ft_face);
+        try freetype.FT_New_Face(backend, sub_path, options.face_index, &ft_face);
         errdefer freetype.FT_Done_Face(ft_face);
 
         var res: Face = .{

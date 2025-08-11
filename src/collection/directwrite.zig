@@ -1,13 +1,13 @@
 const std = @import("std");
 const windows = @import("../windows.zig");
-const Library = @import("../Library.zig");
+const Library = @import("../library.zig");
 const collection = @import("../collection.zig");
 const assert = std.debug.assert;
 const unicode = std.unicode;
 const mem = std.mem;
 const Allocator = mem.Allocator;
 
-pub fn initIterator(allocator: Allocator, library: Library, descriptor: collection.Descriptor) !FontIterator {
+pub fn initIterator(allocator: Allocator, library: *windows.IDWriteFactory, descriptor: collection.Descriptor) !FontIterator {
     const dw_font_collection = try library.impl.dw_factory.GetSystemFontCollection(false);
     errdefer dw_font_collection.Release();
 
