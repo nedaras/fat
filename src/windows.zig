@@ -613,6 +613,25 @@ pub const IDWriteFont = extern struct {
         return IUnknown.AddRef(@ptrCast(self));
     }
 
+    pub const GetFontFamilyError = error{
+        // tood: figure if this can returned OOM
+        Unexpected,
+    };
+
+    pub fn GetFontFamily(self: *IDWriteFont) GetFontFamilyError!*IDWriteFontFamily {
+        const FnType = fn (*IDWriteFont, **IDWriteFontFamily) callconv(WINAPI) HRESULT;
+        const get_font_family: *const FnType = @ptrCast(self.vtable[3]);
+
+        var fontFamily: *IDWriteFontFamily = undefined;
+        
+        const hr = get_font_family(self, &fontFamily);
+        return switch (hr) {
+            windows.S_OK => fontFamily,
+            windows.E_POINTER => unreachable,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
+
     // todo: idk maybe return enum with _ as idk why not
     pub inline fn GetWeight(self: *IDWriteFont) INT {
         const FnType = fn (*IDWriteFont) callconv(WINAPI) INT;

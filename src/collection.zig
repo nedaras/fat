@@ -55,13 +55,6 @@ pub const Descriptor = struct {
     /// (If pixel conversion is necessary, i.e. emoji fonts)
     size: f32 = 0.0,
 
-    pub const C = extern struct {
-        family: ?[*:0]const u8 = null,
-        style: ?[*:0]const u8 = null,
-        codepoint: u32 = 0,
-        size: f32 = 0.0,
-    };
-
     ///// True if we want to search specifically for a font that supports
     ///// specific styles.
     //bold: bool = false,
@@ -69,47 +62,56 @@ pub const Descriptor = struct {
     //monospace: bool = false,
 };
 
-pub const InitError = error{
-    OutOfMemory,
-    Unexpected,
-};
+pub const DefferedFace = struct {
+    family: [:0]const u8,
 
-// todo: remove this this is b shit
-pub const FontIterator = switch (build_options.font_backend) {
-    .FontconfigFreetype => fontconfig.FontIterator,
-    .Directwrite => directwrite.FontIterator,
-    .Freetype => Noop.FontIterator,
-};
+    impl: Impl,
 
-pub inline fn initIterator(allocator: Allocator, backend: library.CollectionBackend, descriptor: Descriptor) InitError!FontIterator {
-    return switch (build_options.font_backend) {
-        .FontconfigFreetype => fontconfig.initIterator(allocator, backend, descriptor),
-        .Directwrite => directwrite.initIterator(allocator, backend, descriptor),
-        .Freetype => Noop.initIterator(allocator, backend, descriptor),
-    };
-}
+    //size: f32,
 
-pub const Noop = struct {
-    pub fn initIterator(_: Allocator, _: void, _: Descriptor) InitError!Noop.FontIterator {
-        return .{};
+    //weight: FontWeight,
+    //slant: FontSlant,
+
+    pub inline fn deinit(self: DefferedFace) void {
+        self.impl.deinit();
     }
 
-    pub const FontIterator = struct {
-        pub const Font = struct {
-            family: [:0]const u8,
-            size: f32,
+    const Impl = switch (build_options.font_backend) {
+        .FontconfigFreetype => fontconfig.DefferedFace,
+        .Directwrite => directwrite.DefferedFace,
+        .Freetype => @compileError("not implemented"),
+    };
+};
 
-            pub fn deinit(_: Font) void {}
+pub const FontIterator = struct {
+    impl: Impl,
 
-            pub inline fn hasCodepoint(_: Font, _: u21) bool {
-                return false;
-            }
+    pub const IterateFontsError = error{
+        OutOfMemory,
+        Unexpected,
+    };
+
+    pub fn iterateFonts(backend: library.CollectionBackend, allocator: Allocator, descriptor: Descriptor) IterateFontsError!FontIterator {
+        return .{ .impl = try Impl.init(backend, allocator, descriptor) };
+    }
+
+    pub inline fn deinit(self: FontIterator) void {
+        self.impl.deinit();
+    }
+
+    pub fn next(self: *FontIterator) !?DefferedFace {
+        const deffered_face = (try self.impl.next()) orelse return null;
+        errdefer deffered_face.deinit();
+
+        return .{
+            .family = deffered_face.family(),
+            .impl = deffered_face,
         };
+    }
 
-        pub fn next(_: *Noop.FontIterator) !?Font {
-            return null;
-        }
-
-        pub fn deinit(_: Noop.FontIterator) void {}
+    const Impl = switch (build_options.font_backend) {
+        .FontconfigFreetype => fontconfig.FontIterator,
+        .Directwrite => directwrite.FontIterator,
+        .Freetype => @compileError("not implemented"),
     };
 };

@@ -103,21 +103,21 @@ pub fn openFace(sub_path: [:0]const u8, options: Face.OpenFaceOptions) !Face {
     return Face.openFace(backend, sub_path, options);
 }
 
-pub fn iterateCollection(allocator: Allocator, descriptor: collection.Descriptor) !collection.FontIterator {
+pub fn iterateFonts(allocator: Allocator, descriptor: collection.Descriptor) !collection.FontIterator {
     const backend = try getCollectionBackend();
-    return collection.initIterator(allocator, backend, descriptor);
+    return collection.FontIterator.iterateFonts(backend, allocator, descriptor);
 }
 
 test {
     const face = try openFace("/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf", .{ .size = .{ .points = 12.0 } });
     defer face.close();
 
-    var it = try iterateCollection(std.testing.allocator, .{});
+    var it = try iterateFonts(std.testing.allocator, .{});
     defer it.deinit();
 
-    while (try it.next()) |f| {
-        defer f.deinit();
+    while (try it.next()) |df| {
+        defer df.deinit();
 
-        std.debug.print("{s}\n", .{f.family});
+        std.debug.print("{s}\n", .{df.family});
     }
 }

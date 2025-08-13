@@ -16,7 +16,7 @@ pub const Face = struct {
         tmp_path.len = try std.unicode.wtf8ToWtf16Le(&tmp_path.data, sub_path);
         tmp_path.data[tmp_path.len] = 0;
 
-        const font_file = try backend.CreateFontFileReference(tmp_path.span(), null) catch |err| return switch (err) {
+        const font_file = backend.CreateFontFileReference(tmp_path.span(), null) catch |err| return switch (err) {
             error.FontNotFound, error.AccessDenied => error.FailedToOpen,
             else => |e| e,
         };
