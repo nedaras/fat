@@ -1,6 +1,7 @@
 const std = @import("std");
 const windows = @import("../windows.zig");
 const collection = @import("../collection.zig");
+const Face = @import("../face/directwrite.zig").Face;
 const assert = std.debug.assert;
 const unicode = std.unicode;
 const mem = std.mem;
@@ -12,13 +13,13 @@ pub const DefferedFace = struct {
     allocator: Allocator,
     family_name: [:0]u8,
 
-    pub fn family(self: DefferedFace) [:0]const u8 {
-        return self.family_name;
-    }
-
     pub fn deinit(self: DefferedFace) void {
         self.allocator.free(self.family_name);
         self.dw_font.Release();
+    }
+
+    pub fn family(self: DefferedFace) [:0]const u8 {
+        return self.family_name;
     }
 };
 
@@ -150,7 +151,6 @@ pub const FontIterator = struct {
     }
 
     fn score(dw_font: *windows.IDWriteFont, descriptor: collection.Descriptor) Score.Backing {
-        // todo: mb store family_name in some hash_map
         var self: Score = .{};
 
         if (descriptor.family) |wtf8_family_name| blk: {
@@ -174,6 +174,7 @@ pub const FontIterator = struct {
                 else => @panic("blow up"),
             };
 
+            // todo: benchmark this as i think converting wtf8 to wtf16 and doing mem.eql would be faster
             if (wtf8_family_name.len == wtf16_family_name.len) {
                 assert(unicode.wtf8ValidateSlice(wtf8_family_name));
 

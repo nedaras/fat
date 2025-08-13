@@ -1,22 +1,22 @@
 const std = @import("std");
 const windows = @import("../windows.zig");
 const shared = @import("shared.zig");
+const DefferedFace = @import("../collection/directwrite.zig").DefferedFace;
 const assert = std.debug.assert;
 const Allocator = std.mem.Allocator;
 
 pub const Face = struct {
-    library: *windows.IDWriteFactory,
-
+    dw_factory: *windows.IDWriteFactory,
     dw_face: *windows.IDWriteFontFace,
 
     size: shared.DesiredSize,
 
-    pub fn openFace(backend: *windows.IDWriteFactory, sub_path: [:0]const u8, options: shared.OpenFaceOptions) !Face {
+    pub fn openFace(dw_factory: *windows.IDWriteFactory, sub_path: [:0]const u8, options: shared.OpenFaceOptions) !Face {
         var tmp_path: windows.PathSpace = undefined;
         tmp_path.len = try std.unicode.wtf8ToWtf16Le(&tmp_path.data, sub_path);
         tmp_path.data[tmp_path.len] = 0;
 
-        const font_file = backend.CreateFontFileReference(tmp_path.span(), null) catch |err| return switch (err) {
+        const font_file = dw_factory.CreateFontFileReference(tmp_path.span(), null) catch |err| return switch (err) {
             error.FontNotFound, error.AccessDenied => error.FailedToOpen,
             else => |e| e,
         };
@@ -29,11 +29,22 @@ pub const Face = struct {
 
         try font_file.Analyze(&file_type, &face_type, &faces);
 
-        const dw_face = try backend.CreateFontFace(face_type, &.{font_file}, options.face_index, .DWRITE_FONT_SIMULATIONS_NONE);
+        const dw_face = try dw_factory.CreateFontFace(face_type, &.{font_file}, options.face_index, .DWRITE_FONT_SIMULATIONS_NONE);
         errdefer dw_face.Release();
 
         return .{
-            .library = backend,
+            .library = dw_factory,
+            .dw_face = dw_face,
+            .size = options.size,
+        };
+    }
+
+    pub fn openDefferedFace(dw_factory: *windows.IDWriteFactory, deffered_face: DefferedFace, options: shared.OpenFaceOptions) !Face {
+        const dw_face = try deffered_face.dw_font.CreateFontFace();
+        errdefer dw_face.Release();
+
+        return .{
+            .dw_factory = dw_factory,
             .dw_face = dw_face,
             .size = options.size,
         };
@@ -79,7 +90,7 @@ pub const Face = struct {
             .bidiLevel = 0,
         };
 
-        const run_analysis = try self.library.impl.dw_factory.CreateGlyphRunAnalysis(
+        const run_analysis = try self.dw_factory.CreateGlyphRunAnalysis(
             &glyph_run,
             1.0,
             matrix,
@@ -121,7 +132,7 @@ pub const Face = struct {
             .bidiLevel = 0,
         };
 
-        const run_analysis = try self.library.impl.dw_factory.CreateGlyphRunAnalysis(
+        const run_analysis = try self.dw_factory.CreateGlyphRunAnalysis(
             &glyph_run,
             1.0,
             matrix,

@@ -660,6 +660,26 @@ pub const IDWriteFont = extern struct {
 
         return exists == windows.TRUE;
     }
+
+    pub const CreateFontFaceError = error{
+        OutOfMemory,
+        Unexpected,
+    };
+
+    pub fn CreateFontFace(self: *IDWriteFont) CreateFontFaceError!*IDWriteFontFace {
+        const FnType = fn (*IDWriteFont, **IDWriteFontFace) callconv(WINAPI) HRESULT;
+        const create_font_face: *const FnType = @ptrCast(self.vtable[13]);
+
+        var fontFace: *IDWriteFontFace = undefined;
+
+        const hr = create_font_face(self, &fontFace);
+        return switch (hr) {
+            windows.S_OK => fontFace,
+            windows.E_POINTER => unreachable,
+            windows.E_OUTOFMEMORY => error.OutOfMemory,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
 };
 
 pub const DWriteCreateFactoryError = error{

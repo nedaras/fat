@@ -6,6 +6,7 @@ const noop = @import("collection/noop.zig");
 const library = @import("library.zig");
 const mem = std.mem;
 const Allocator = std.mem.Allocator;
+const Face = library.Face;
 
 pub const FontWeight = enum {
     thin,
@@ -77,8 +78,10 @@ pub const DefferedFace = struct {
         self.impl.deinit();
     }
 
-    // open() Face {
-    // }
+    pub fn open(self: DefferedFace, options: Face.OpenFaceOptions) !Face {
+        const backend = try library.getFontBackend(); // todo: move this func out of getFontBackend
+        return Face.openDefferedFace(backend, self, options);
+    }
 
     const Impl = switch (build_options.font_backend) {
         .FontconfigFreetype => fontconfig.DefferedFace,

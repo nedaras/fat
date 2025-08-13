@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const build_options = @import("build_options");
 const library = @import("library.zig");
+const collection = @import("collection.zig");
 const directwrite = @import("face/directwrite.zig");
 const freetype = @import("face/freetype.zig");
 const shared = @import("face/shared.zig");
@@ -27,6 +28,18 @@ pub const OpenFaceError = error{
 pub inline fn openFace(backend: library.FontBackend, sub_path: [:0]const u8, options: OpenFaceOptions) OpenFaceError!Face {
     return .{
         .impl = try Impl.openFace(backend, sub_path, options),
+    };
+}
+
+
+pub const OpenDefferedFaceError = error{
+    OutOfMemory,
+    Unexpected,
+};
+
+pub inline fn openDefferedFace(backend: library.FontBackend, deffered_face: collection.DefferedFace, options: OpenFaceOptions) OpenDefferedFaceError!Face {
+    return .{
+        .impl = try Impl.openDefferedFace(backend, deffered_face.impl, options),
     };
 }
 

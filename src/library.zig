@@ -118,6 +118,9 @@ test {
     while (try it.next()) |df| {
         defer df.deinit();
 
+        const f = try df.open( .{ .size = .{ .points = 12.0 } } );
+        defer f.close();
+
         std.debug.print("{s}\n", .{df.family});
     }
 }
