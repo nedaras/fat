@@ -166,10 +166,10 @@ pub const Face = struct {
             }
         }
 
-        if (allocator.resize(bitmap, bitmap_len)) return .{
+        if (allocator.remap(bitmap, bitmap_len)) |new_bitmap| return .{
             .width = width,
             .height = height,
-            .bitmap = bitmap,
+            .bitmap = new_bitmap,
         };
 
         defer allocator.free(bitmap);
