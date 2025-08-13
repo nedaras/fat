@@ -5,15 +5,18 @@ const Allocator = std.mem.Allocator;
 
 // todo: make freetype threadsafe dwrite
 
+// yikes this is intresting as collections can be diffrent now cant they? we can use directwrite for disc or nothing
+const DefferedFace = @import("../collection/fontconfig.zig").DefferedFace;
+
 pub const Face = struct {
     ft_face: freetype.FT_Face,
 
     size: shared.DesiredSize,
 
-    pub fn openFace(backend: freetype.FT_Library, sub_path: [:0]const u8, options: shared.OpenFaceOptions) !Face {
+    pub fn openFace(ft_library: freetype.FT_Library, sub_path: [:0]const u8, options: shared.OpenFaceOptions) !Face {
         var ft_face: freetype.FT_Face = undefined;
 
-        try freetype.FT_New_Face(backend, sub_path, options.face_index, &ft_face);
+        try freetype.FT_New_Face(ft_library, sub_path, options.face_index, &ft_face);
         errdefer freetype.FT_Done_Face(ft_face);
 
         var res: Face = .{
@@ -23,6 +26,20 @@ pub const Face = struct {
 
         try res.setSize(options.size);
         return res;
+    }
+
+    pub fn openDefferedFace(ft_library: freetype.FT_Library, deffered_face: DefferedFace, options: shared.OpenFaceOptions) !Face {
+        // todo: hmm mb we could just use like deffered_face.path() and deffered_face.index() and pass them to freetype idk
+        const fontconfig = @import("../fontconfig.zig");
+
+        const file = (fontconfig.FcPatternGetString(deffered_face.fc_pattern, "file", 0) catch unreachable).?;
+        const index = (fontconfig.FcPatternGetInteger(deffered_face.fc_pattern, "index", 0) catch unreachable).?;
+
+        return openFace(ft_library, file, .{ .size = options.size, .face_index = @intCast(index) }) catch |err| switch (err) {
+            error.FailedToOpen,
+            error.NotSupported => unreachable,
+            else => |e| e,
+        };
     }
 
     pub fn close(self: Face) void {

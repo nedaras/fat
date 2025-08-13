@@ -118,6 +118,12 @@ test {
     while (try it.next()) |df| {
         defer df.deinit();
 
+        //const fc = @import("fontconfig.zig");
+        //const file = (fc.FcPatternGetString(df.impl.fc_pattern, "file", 0) catch unreachable).?;
+        //const index = (fc.FcPatternGetInteger(df.impl.fc_pattern, "index", 0) catch unreachable).?;
+
+        //std.debug.print("'{s}': {d}, magic: {d}\n", .{file, index & 0xFFFF, (index >> 16) & 0xFFFF});
+
         const f = try df.open( .{ .size = .{ .points = 12.0 } } );
         defer f.close();
 
