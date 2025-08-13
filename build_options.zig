@@ -3,6 +3,7 @@ const options = @import("build_options");
 
 pub const font_backend = std.meta.stringToEnum(FontBackend, @tagName(options.font_backend)).?;
 
+// todo: add DirectwriteFreetype
 pub const FontBackend = enum {
     Directwrite,
     Freetype,

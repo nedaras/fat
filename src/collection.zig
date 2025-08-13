@@ -2,6 +2,7 @@ const std = @import("std");
 const build_options = @import("build_options");
 const fontconfig = @import("collection/fontconfig.zig");
 const directwrite = @import("collection/directwrite.zig");
+const noop = @import("collection/noop.zig");
 const library = @import("library.zig");
 const mem = std.mem;
 const Allocator = std.mem.Allocator;
@@ -79,7 +80,7 @@ pub const DefferedFace = struct {
     const Impl = switch (build_options.font_backend) {
         .FontconfigFreetype => fontconfig.DefferedFace,
         .Directwrite => directwrite.DefferedFace,
-        .Freetype => @compileError("not implemented"),
+        .Freetype => noop.DefferedFace,
     };
 };
 
@@ -112,6 +113,6 @@ pub const FontIterator = struct {
     const Impl = switch (build_options.font_backend) {
         .FontconfigFreetype => fontconfig.FontIterator,
         .Directwrite => directwrite.FontIterator,
-        .Freetype => @compileError("not implemented"),
+        .Freetype => noop.FontIterator,
     };
 };

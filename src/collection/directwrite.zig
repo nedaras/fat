@@ -121,7 +121,7 @@ pub const FontIterator = struct {
         };
 
         var wtf16_buf: [256]u16 = undefined;
-        const wtf16_family_name = dw_family_names.GetString(dw_family_names_idx, &wtf16_buf) catch |err| return switch(err) {
+        const wtf16_family_name = dw_family_names.GetString(dw_family_names_idx, &wtf16_buf) catch |err| return switch (err) {
             error.BufferTooSmall => @panic("TODO"), // just alloc that buffer temp
             else => |e| e,
         };

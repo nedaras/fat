@@ -90,7 +90,11 @@ pub const DWRITE_FONT_WEIGHT = enum(INT) {
     DWRITE_FONT_WEIGHT_EXTRA_BLACK = 950,
 };
 
-pub const DWRITE_FONT_STYLE = enum(INT) { DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STYLE_OBLIQUE, DWRITE_FONT_STYLE_ITALIC, };
+pub const DWRITE_FONT_STYLE = enum(INT) {
+    DWRITE_FONT_STYLE_NORMAL,
+    DWRITE_FONT_STYLE_OBLIQUE,
+    DWRITE_FONT_STYLE_ITALIC,
+};
 
 pub const DWRITE_MATRIX = extern struct {
     m11: FLOAT,
@@ -623,7 +627,7 @@ pub const IDWriteFont = extern struct {
         const get_font_family: *const FnType = @ptrCast(self.vtable[3]);
 
         var fontFamily: *IDWriteFontFamily = undefined;
-        
+
         const hr = get_font_family(self, &fontFamily);
         return switch (hr) {
             windows.S_OK => fontFamily,
