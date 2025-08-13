@@ -109,8 +109,8 @@ pub fn iterateFonts(allocator: Allocator, descriptor: collection.Descriptor) !co
 }
 
 test {
-    const face = try openFace("/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf", .{ .size = .{ .points = 12.0 } });
-    defer face.close();
+    //const face = try openFace("/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf", .{ .size = .{ .points = 12.0 } });
+    //defer face.close();
 
     var it = try iterateFonts(std.testing.allocator, .{});
     defer it.deinit();
