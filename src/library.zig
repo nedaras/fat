@@ -121,6 +121,8 @@ test {
         const f = try df.open( .{ .size = .{ .points = 12.0 } } );
         defer f.close();
 
-        std.debug.print("{s}\n", .{df.family});
+        const has = f.glyphIndex('A') != null;
+
+        std.debug.print("'{s}': has letter 'A': {}\n", .{df.family, has});
     }
 }
