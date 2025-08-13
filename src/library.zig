@@ -112,7 +112,7 @@ test {
     //const face = try openFace("/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf", .{ .size = .{ .points = 12.0 } });
     //defer face.close();
 
-    var it = try iterateFonts(std.testing.allocator, .{});
+    var it = try iterateFonts(std.testing.allocator, .{ .family = "Powershell" });
     defer it.deinit();
 
     while (try it.next()) |df| {

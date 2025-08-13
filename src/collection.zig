@@ -42,19 +42,19 @@ pub const Descriptor = struct {
     /// fontconfig pattern, such as "Fira Code-14:bold".
     family: ?[:0]const u8 = null,
 
-    /// Specific font style to search for. This will filter the style
-    /// string the font advertises. The "bold/italic" booleans later in this
-    /// struct filter by the style trait the font has, not the string, so
-    /// these can be used in conjunction or not.
-    style: ?[:0]const u8 = null, // tood make it an enum wtf
+    //// Specific font style to search for. This will filter the style
+    //// string the font advertises. The "bold/italic" booleans later in this
+    //// struct filter by the style trait the font has, not the string, so
+    //// these can be used in conjunction or not.
+    //style: ?[:0]const u8 = null, // tood make it an enum wtf
 
-    /// A codepoint that this font must be able to render.
-    codepoint: u21 = 0, // todo: make it codepoints
+    //// A codepoint that this font must be able to render.
+    //codepoint: u21 = 0, // todo: make it codepoints
 
-    /// Font size in points that the font should support. For conversion
-    /// to pixels, we will use 72 DPI for Mac and 96 DPI for everything else.
-    /// (If pixel conversion is necessary, i.e. emoji fonts)
-    size: f32 = 0.0,
+    //// Font size in points that the font should support. For conversion
+    //// to pixels, we will use 72 DPI for Mac and 96 DPI for everything else.
+    //// (If pixel conversion is necessary, i.e. emoji fonts)
+    //size: f32 = 0.0,
 
     ///// True if we want to search specifically for a font that supports
     ///// specific styles.
@@ -77,6 +77,9 @@ pub const DefferedFace = struct {
         self.impl.deinit();
     }
 
+    // open() Face {
+    // }
+
     const Impl = switch (build_options.font_backend) {
         .FontconfigFreetype => fontconfig.DefferedFace,
         .Directwrite => directwrite.DefferedFace,
@@ -88,10 +91,12 @@ pub const FontIterator = struct {
     impl: Impl,
 
     pub const IterateFontsError = error{
+        InvalidWtf8,
         OutOfMemory,
         Unexpected,
     };
 
+    // todo: make like if no descriptor is set then prioritize regular fonts on top
     pub fn iterateFonts(backend: library.CollectionBackend, allocator: Allocator, descriptor: Descriptor) IterateFontsError!FontIterator {
         return .{ .impl = try Impl.init(backend, allocator, descriptor) };
     }

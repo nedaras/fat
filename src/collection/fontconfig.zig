@@ -31,21 +31,21 @@ pub const FontIterator = struct {
             fontconfig.FcPatternAddString(fc_pattern, "falimy", family);
         }
 
-        if (descriptor.style) |style| {
-            fontconfig.FcPatternAddString(fc_pattern, "style", style);
-        }
+        //if (descriptor.style) |style| {
+            //fontconfig.FcPatternAddString(fc_pattern, "style", style);
+        //}
 
-        if (descriptor.codepoint != 0) {
-            const charset = try fontconfig.FcCharSetCreate();
-            defer fontconfig.FcCharSetDestroy(charset);
+        //if (descriptor.codepoint != 0) {
+            //const charset = try fontconfig.FcCharSetCreate();
+            //defer fontconfig.FcCharSetDestroy(charset);
 
-            fontconfig.FcCharSetAddChar(charset, descriptor.codepoint);
-            fontconfig.FcPatternAddCharSet(fc_pattern, "charset", charset);
-        }
+            //fontconfig.FcCharSetAddChar(charset, descriptor.codepoint);
+            //fontconfig.FcPatternAddCharSet(fc_pattern, "charset", charset);
+        //}
 
-        if (descriptor.size != 0.0) {
-            fontconfig.FcPatternAddDouble(fc_pattern, "size", descriptor.size);
-        }
+        //if (descriptor.size != 0.0) {
+            //fontconfig.FcPatternAddDouble(fc_pattern, "size", descriptor.size);
+        //}
 
         fontconfig.FcConfigSubstitute(fc_config, fc_pattern, .FcMatchPattern);
         fontconfig.FcDefaultSubstitute(fc_pattern);

@@ -30,7 +30,9 @@ pub const FontIterator = struct {
 
     idx: usize,
 
-    const Score = struct {
+    const Score = packed struct {
+        const Backing = @typeInfo(@This()).@"struct".backing_integer.?;
+
         family: bool = false,
     };
 
@@ -77,8 +79,17 @@ pub const FontIterator = struct {
             }
         }
 
-        // sort by score
-        _ = descriptor;
+        if (descriptor.family) |family| {
+            if (!unicode.wtf8ValidateSlice(family)) {
+                return error.InvalidWtf8;
+            }
+        }
+
+        std.sort.pdq(*windows.IDWriteFont, dw_fonts, descriptor, struct {
+            fn lessThan(desc: collection.Descriptor, a: *windows.IDWriteFont, b: *windows.IDWriteFont) bool {
+                return score(a, desc) > score(b, desc);
+            }
+        }.lessThan);
 
         return .{
             .dw_font_collection = dw_font_collection,
@@ -126,6 +137,8 @@ pub const FontIterator = struct {
             else => |e| e,
         };
 
+        // i can use std::string here like alot of family names are less then 16 chars, so we would not even need to allocate it
+
         const wtf8_family_name = try unicode.wtf16LeToWtf8AllocZ(self.allocator, wtf16_family_name);
         errdefer self.allocator.free(wtf8_family_name);
 
@@ -134,5 +147,51 @@ pub const FontIterator = struct {
             .allocator = self.allocator,
             .family_name = wtf8_family_name,
         };
+    }
+
+    fn score(dw_font: *windows.IDWriteFont, descriptor: collection.Descriptor) Score.Backing {
+        // todo: mb store family_name in some hash_map
+        var self: Score = .{};
+
+        if (descriptor.family) |wtf8_family_name| blk: {
+            // todo: i need to check refs of these objects as probs it just has it in some array so like it cant even error
+            const dw_font_family = dw_font.GetFontFamily() catch @panic("blow up");
+            defer dw_font_family.Release();
+
+            const dw_family_names = dw_font_family.GetFamilyNames() catch @panic("blow up");
+            defer dw_family_names.Release();
+
+            assert(dw_family_names.GetCount() > 0);
+
+            const dw_family_names_idx = dw_family_names.FindLocaleName(unicode.wtf8ToWtf16LeStringLiteral("en-US")) catch |err| switch (err) {
+                error.LocaleNameNotFound => 0,
+                else => @panic("blow up"),
+            };
+
+            var wtf16_buf: [256]u16 = undefined;
+            const wtf16_family_name = dw_family_names.GetString(dw_family_names_idx, &wtf16_buf) catch |err| return switch (err) {
+                error.BufferTooSmall => @panic("TODO"),
+                else => @panic("blow up"),
+            };
+
+            if (wtf8_family_name.len == wtf16_family_name.len) {
+                assert(unicode.wtf8ValidateSlice(wtf8_family_name));
+
+                var wtf8_it = unicode.Wtf8Iterator{ .bytes = wtf8_family_name, .i = 0 };
+                var wtf16_it = unicode.Wtf16LeIterator{ .bytes = mem.sliceAsBytes(wtf16_family_name), .i = 0 };
+
+                while (true) {
+                    const a = wtf8_it.nextCodepoint() orelse break;
+                    const b = wtf16_it.nextCodepoint().?;
+
+                    if (a != b) {
+                        break :blk;
+                    }
+                }
+                self.family = true;
+            }
+        }
+
+        return @bitCast(self);
     }
 };
