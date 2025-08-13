@@ -36,8 +36,7 @@ pub const Face = struct {
         const index = (fontconfig.FcPatternGetInteger(deffered_face.fc_pattern, "index", 0) catch unreachable).?;
 
         return openFace(ft_library, file, .{ .size = options.size, .face_index = @intCast(index) }) catch |err| switch (err) {
-            error.FailedToOpen,
-            error.NotSupported => unreachable,
+            error.FailedToOpen, error.NotSupported => unreachable,
             else => |e| e,
         };
     }

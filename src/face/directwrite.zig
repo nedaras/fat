@@ -149,27 +149,40 @@ pub const Face = struct {
         const height: u32 = @intCast(bounds.bottom - bounds.top);
 
         const bitmap_len = @as(usize, @intCast(width)) * @as(usize, @intCast(height));
-
         const bitmap = try allocator.alloc(u8, bitmap_len * 3);
-        errdefer allocator.free(bitmap);
+        // cant do errdefer here as we can invoke double free
 
-        try run_analysis.CreateAlphaTexture(.DWRITE_TEXTURE_CLEARTYPE_3x1, &bounds, bitmap);
+        {
+            errdefer allocator.free(bitmap);
+            try run_analysis.CreateAlphaTexture(.DWRITE_TEXTURE_CLEARTYPE_3x1, &bounds, bitmap);
 
-        for (0..bitmap_len) |i| {
-            // todo: simd or check if compiler does it for us
-            const r: f32 = @floatFromInt(bitmap[i * 3 + 0]);
-            const g: f32 = @floatFromInt(bitmap[i * 3 + 1]);
-            const b: f32 = @floatFromInt(bitmap[i * 3 + 2]);
+            for (0..bitmap_len) |i| {
+                // todo: simd or check if compiler does it for us
+                const r: f32 = @floatFromInt(bitmap[i * 3 + 0]);
+                const g: f32 = @floatFromInt(bitmap[i * 3 + 1]);
+                const b: f32 = @floatFromInt(bitmap[i * 3 + 2]);
 
-            bitmap[i] = @intFromFloat(r * 0.2989 + g * 0.587 + b * 0.114);
+                bitmap[i] = @intFromFloat(r * 0.2989 + g * 0.587 + b * 0.114);
+            }
         }
 
-        assert(allocator.resize(bitmap, bitmap_len));
+        if (allocator.resize(bitmap, bitmap_len)) return .{
+            .width = width,
+            .height = height,
+            .bitmap = bitmap,
+        };
+
+        defer allocator.free(bitmap);
+
+        const new_bitmap = try allocator.alloc(u8, bitmap_len);
+        errdefer allocator.free(new_bitmap);
+
+        @memcpy(new_bitmap, bitmap[0..bitmap_len]);
 
         return .{
             .width = width,
             .height = height,
-            .bitmap = bitmap,
+            .bitmap = new_bitmap,
         };
     }
 };

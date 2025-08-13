@@ -31,7 +31,6 @@ pub inline fn openFace(backend: library.FontBackend, sub_path: [:0]const u8, opt
     };
 }
 
-
 pub const OpenDefferedFaceError = error{
     OutOfMemory,
     Unexpected,
