@@ -52,7 +52,7 @@ pub inline fn setSize(self: *Face, size: DesiredSize) !void {
 }
 
 pub inline fn glyphIndex(self: Face, codepoint: u21) ?u32 {
-    return self.impl.gyphIndex(codepoint);
+    return self.impl.glyphIndex(codepoint);
 }
 
 pub inline fn glyphBoundingBox(self: Face, glyph_index: u32) !GlyphBoundingBox {
@@ -61,6 +61,11 @@ pub inline fn glyphBoundingBox(self: Face, glyph_index: u32) !GlyphBoundingBox {
 
 pub inline fn renderGlyph(self: Face, allocator: Allocator, glyph_index: u32) !GlyphRender {
     return self.impl.renderGlyph(allocator, glyph_index);
+}
+
+
+pub inline fn glyphMetrics(self: Face, glyph_index: u32) !shared.GlyphMetrics {
+    return self.impl.glyphMetrics(glyph_index);
 }
 
 const Face = @This();

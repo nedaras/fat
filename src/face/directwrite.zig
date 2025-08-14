@@ -58,7 +58,7 @@ pub const Face = struct {
         self.size = size;
     }
 
-    pub fn gyphIndex(self: Face, codepoint: u21) ?u32 {
+    pub fn glyphIndex(self: Face, codepoint: u21) ?u32 {
         const codepoints = [1]windows.UINT32{codepoint};
         var indicies = [1]windows.UINT16{0};
 
@@ -162,7 +162,7 @@ pub const Face = struct {
                 const g: f32 = @floatFromInt(bitmap[i * 3 + 1]);
                 const b: f32 = @floatFromInt(bitmap[i * 3 + 2]);
 
-                bitmap[i] = @intFromFloat(r * 0.2989 + g * 0.587 + b * 0.114);
+                bitmap[i] = @intFromFloat(@round(r * 0.2989 + g * 0.587 + b * 0.114));
             }
         }
 
@@ -183,6 +183,23 @@ pub const Face = struct {
             .width = width,
             .height = height,
             .bitmap = new_bitmap,
+        };
+    }
+
+    pub fn glyphMetrics(self: Face, glyph_index: u32) !shared.GlyphMetrics {
+        const metrics = try self.dw_face.GetMetrics();
+        const scale = @as(f32, @floatFromInt(self.size.pixels())) / @as(f32, @floatFromInt(metrics.designUnitsPerEm));
+
+        const indicies = [1]windows.UINT16{@intCast(glyph_index)};
+        var glyph_metrics = [1]windows.DWRITE_GLYPH_METRICS{undefined};
+
+        try self.dw_face.GetDesignGlyphMetrics(&indicies, &glyph_metrics, windows.FALSE);
+
+        return .{
+            .bearing_x = @intFromFloat(@round(@as(f32, @floatFromInt(glyph_metrics[0].leftSideBearing)) * scale)),
+            .bearing_y = @intFromFloat(@round(@as(f32, @floatFromInt(glyph_metrics[0].topSideBearing)) * scale)),
+            .advance_x = @intFromFloat(@round(@as(f32, @floatFromInt(glyph_metrics[0].advanceWidth)) * scale)),
+            .advance_y = @intFromFloat(@round(@as(f32, @floatFromInt(glyph_metrics[0].advanceHeight)) * scale)),
         };
     }
 };

@@ -109,20 +109,15 @@ pub fn iterateFonts(allocator: Allocator, descriptor: collection.Descriptor) !co
 }
 
 test {
-    //const face = try openFace("/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf", .{ .size = .{ .points = 12.0 } });
-    //defer face.close();
-
     var it = try iterateFonts(std.testing.allocator, .{ .family = "Times New Roman" });
     defer it.deinit();
 
-    while (try it.next()) |df| {
-        defer df.deinit();
+    const deffered_face = (try it.next()).?;
+    defer deffered_face.deinit();
 
-        const f = try df.open(.{ .size = .{ .points = 12.0 } });
-        defer f.close();
+    const face = try deffered_face.open(.{ .size = .{ .points = 12.0 } });
+    defer face.close();
 
-        const has = f.glyphIndex('A') != null;
-
-        std.debug.print("'{s}': has letter 'A': {}\n", .{ df.family, has });
-    }
+    const A = face.glyphIndex('A').?;
+    std.debug.print("{}\n", .{try face.glyphMetrics(A)});
 }

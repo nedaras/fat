@@ -73,7 +73,7 @@ pub const Face = struct {
         };
     }
 
-    pub inline fn gyphIndex(self: Face, codepoint: u21) ?u32 {
+    pub inline fn glyphIndex(self: Face, codepoint: u21) ?u32 {
         return freetype.FT_Get_Char_Index(self.ft_face, codepoint);
     }
 

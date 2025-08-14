@@ -8,18 +8,7 @@ pub const GlyphRender = struct {
     width: u32,
     height: u32,
 
-    // harfbuzz should give this to us in shaper or smth
-    //offset_x: u16,
-    //offset_y: u16,
-
     bitmap: []u8,
-
-    pub const C = extern struct {
-        width: u32,
-        height: u32,
-
-        bitmap: [*]u8,
-    };
 
     pub fn deinit(self: GlyphRender, allocator: Allocator) void {
         allocator.free(self.bitmap);
@@ -29,11 +18,14 @@ pub const GlyphRender = struct {
 pub const GlyphBoundingBox = struct {
     width: u32,
     height: u32,
+};
 
-    pub const C = extern struct {
-        width: u32,
-        height: u32,
-    };
+pub const GlyphMetrics = struct {
+    bearing_x: u32,
+    bearing_y: u32,
+
+    advance_x: u32,
+    advance_y: u32,
 };
 
 /// The desired size for loading a font.
@@ -55,9 +47,4 @@ pub const DesiredSize = struct {
 pub const OpenFaceOptions = struct {
     size: DesiredSize,
     face_index: u32 = 0,
-
-    pub const C = extern struct {
-        size: f32,
-        face_index: u32,
-    };
 };

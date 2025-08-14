@@ -17,6 +17,8 @@ const WINAPI = windows.WINAPI;
 const HRESULT = windows.HRESULT;
 const FILETIME = windows.FILETIME;
 
+pub const INT16 = i16;
+pub const INT32 = i32;
 pub const UINT32 = u32;
 pub const UINT16 = u16;
 pub const REFIID = *const GUID;
@@ -119,6 +121,29 @@ pub const DWRITE_GLYPH_RUN = extern struct {
     glyphOffsets: ?[*]const DWRITE_GLYPH_OFFSET,
     isSideways: BOOL,
     bidiLevel: UINT32,
+};
+
+pub const DWRITE_FONT_METRICS = extern struct {
+    designUnitsPerEm: UINT16,
+    ascent: UINT16,
+    descent: UINT16,
+    lineGap: INT16,
+    capHeight: UINT16,
+    xHeight: UINT16,
+    underlinePosition: INT16,
+    underlineThickness: UINT16,
+    strikethroughPosition: INT16,
+    strikethroughThickness: UINT16,
+};
+
+pub const DWRITE_GLYPH_METRICS = extern struct {
+    leftSideBearing: INT32,
+    advanceWidth: UINT32,
+    rightSideBearing: INT32,
+    topSideBearing: INT32,
+    advanceHeight: UINT32,
+    bottomSideBearing: INT32,
+    verticalOriginY: INT32,
 };
 
 pub fn nearestWeight(weight: anytype) error{InvalidWeight}!DWRITE_FONT_WEIGHT {
@@ -339,6 +364,47 @@ pub const IDWriteFontFace = extern struct {
 
     pub inline fn Release(self: *IDWriteFontFace) void {
         IUnknown.Release(@ptrCast(self));
+    }
+
+    pub const GetMetricsError = error{
+        Unexpected,
+    };
+
+    pub fn GetMetrics(self: *IDWriteFontFace) GetMetricsError!DWRITE_FONT_METRICS {
+        const FnType = fn (*IDWriteFontFace, *DWRITE_FONT_METRICS) callconv(WINAPI) HRESULT;
+        const get_metrics: *const FnType = @ptrCast(self.vtable[8]);
+
+        var fontFaceMetrics: DWRITE_FONT_METRICS = undefined;
+
+        const hr = get_metrics(self, &fontFaceMetrics);
+        return switch (hr) {
+            windows.S_OK => fontFaceMetrics,
+            windows.E_POINTER => unreachable,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
+
+    pub const GetDesignGlyphMetricsError = error{
+        Unexpected,
+    };
+
+    pub fn GetDesignGlyphMetrics(
+        self: *IDWriteFontFace,
+        glyphIndices: []const UINT16,
+        glyphMetrics: []DWRITE_GLYPH_METRICS,
+        isSideways: BOOL,
+    ) GetDesignGlyphMetricsError!void {
+        assert(glyphIndices.len == glyphMetrics.len);
+
+        const FnType = fn (*IDWriteFontFace, [*]const UINT16, UINT32, [*]DWRITE_GLYPH_METRICS, BOOL) callconv(WINAPI) HRESULT;
+        const get_design_glyph_metrics: *const FnType = @ptrCast(self.vtable[10]);
+
+        const hr = get_design_glyph_metrics(self, glyphIndices.ptr, @intCast(glyphIndices.len), glyphMetrics.ptr, isSideways);
+        return switch (hr) {
+            windows.S_OK => {},
+            windows.E_POINTER => unreachable,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
     }
 
     pub fn GetGlyphIndices(
