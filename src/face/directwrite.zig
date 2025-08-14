@@ -94,7 +94,7 @@ pub const Face = struct {
             &glyph_run,
             1.0,
             matrix,
-            .DWRITE_RENDERING_MODE_NATURAL,
+            .DWRITE_RENDERING_MODE_NATURAL_SYMMETRIC,
             .DWRITE_MEASURING_MODE_NATURAL,
             0.0,
             0.0,
