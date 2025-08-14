@@ -102,4 +102,18 @@ pub const Face = struct {
             .bitmap = try allocator.dupe(u8, bitmap.buffer[0 .. bitmap.rows * @abs(bitmap.pitch)]),
         };
     }
+
+    // todo: impl this
+    pub fn glyphMetrics(self: Face, glyph_index: u32) !shared.GlyphMetrics {
+        _ = self;
+        _ = glyph_index;
+
+        return .{
+            .bearing_x = 0,
+            .bearing_y = 0,
+
+            .advance_x = 0,
+            .advance_y = 0,
+        };
+    }
 };
