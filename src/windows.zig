@@ -366,22 +366,14 @@ pub const IDWriteFontFace = extern struct {
         IUnknown.Release(@ptrCast(self));
     }
 
-    pub const GetMetricsError = error{
-        Unexpected,
-    };
-
-    pub fn GetMetrics(self: *IDWriteFontFace) GetMetricsError!DWRITE_FONT_METRICS {
-        const FnType = fn (*IDWriteFontFace, *DWRITE_FONT_METRICS) callconv(WINAPI) HRESULT;
+    pub fn GetMetrics(self: *IDWriteFontFace) DWRITE_FONT_METRICS {
+        const FnType = fn (*IDWriteFontFace, *DWRITE_FONT_METRICS) callconv(WINAPI) void;
         const get_metrics: *const FnType = @ptrCast(self.vtable[8]);
 
         var fontFaceMetrics: DWRITE_FONT_METRICS = undefined;
 
-        const hr = get_metrics(self, &fontFaceMetrics);
-        return switch (hr) {
-            windows.S_OK => fontFaceMetrics,
-            windows.E_POINTER => unreachable,
-            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
-        };
+        get_metrics(self, &fontFaceMetrics);
+        return fontFaceMetrics;
     }
 
     pub const GetDesignGlyphMetricsError = error{

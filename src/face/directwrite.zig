@@ -187,7 +187,7 @@ pub const Face = struct {
     }
 
     pub fn glyphMetrics(self: Face, glyph_index: u32) !shared.GlyphMetrics {
-        const metrics = try self.dw_face.GetMetrics();
+        const metrics = self.dw_face.GetMetrics();
         const scale = @as(f32, @floatFromInt(self.size.pixels())) / @as(f32, @floatFromInt(metrics.designUnitsPerEm));
 
         const indicies = [1]windows.UINT16{@intCast(glyph_index)};
