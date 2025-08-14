@@ -50,7 +50,7 @@ pub const Descriptor = struct {
     //style: ?[:0]const u8 = null, // tood make it an enum wtf
 
     //// A codepoint that this font must be able to render.
-    //codepoint: u21 = 0, // todo: make it codepoints
+    codepoint: u21 = 0,
 
     //// Font size in points that the font should support. For conversion
     //// to pixels, we will use 72 DPI for Mac and 96 DPI for everything else.
@@ -81,6 +81,10 @@ pub const DefferedFace = struct {
     pub fn open(self: DefferedFace, options: Face.OpenFaceOptions) !Face {
         const backend = try library.getFontBackend(); // todo: move this func out of getFontBackend
         return Face.openDefferedFace(backend, self, options);
+    }
+
+    pub inline fn hasCodepoint(self: DefferedFace, codepoint: u21) bool {
+        return self.impl.hasCodepoint(codepoint);
     }
 
     const Impl = switch (build_options.font_backend) {

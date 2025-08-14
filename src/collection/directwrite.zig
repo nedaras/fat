@@ -18,8 +18,12 @@ pub const DefferedFace = struct {
         self.dw_font.Release();
     }
 
-    pub fn family(self: DefferedFace) [:0]const u8 {
+    pub inline fn family(self: DefferedFace) [:0]const u8 {
         return self.family_name;
+    }
+
+    pub inline fn hasCodepoint(self: DefferedFace, codepoint: u21) bool {
+        return self.dw_font.HasCharacter(codepoint);
     }
 };
 
@@ -34,6 +38,7 @@ pub const FontIterator = struct {
     const Score = packed struct {
         const Backing = @typeInfo(@This()).@"struct".backing_integer.?;
 
+        codepoint: bool = false,
         family: bool = false,
     };
 
@@ -191,6 +196,10 @@ pub const FontIterator = struct {
                 }
                 self.family = true;
             }
+        }
+
+        if (descriptor.codepoint != 0) {
+            self.codepoint = dw_font.HasCharacter(descriptor.codepoint);
         }
 
         return @bitCast(self);

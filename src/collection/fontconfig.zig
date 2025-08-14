@@ -5,14 +5,19 @@ const Allocator = std.mem.Allocator;
 
 pub const DefferedFace = struct {
     fc_pattern: *fontconfig.FcPattern,
+    fc_charset: *const fontconfig.FcCharSet,
 
-    pub fn family(self: DefferedFace) [:0]const u8 {
+    pub fn deinit(self: DefferedFace) void {
+        fontconfig.FcPatternDestroy(self.fc_pattern);
+    }
+
+    pub inline fn family(self: DefferedFace) [:0]const u8 {
         // todo: figure out if its good todo it like this like can it error somehow
         return (fontconfig.FcPatternGetString(self.fc_pattern, "family", 0) catch unreachable).?;
     }
 
-    pub fn deinit(self: DefferedFace) void {
-        fontconfig.FcPatternDestroy(self.fc_pattern);
+    pub inline fn hasCodepoint(self: DefferedFace, codepoint: u21) bool {
+        return fontconfig.FcCharSetHasChar(self.fc_charset, codepoint);
     }
 };
 
@@ -23,6 +28,7 @@ pub const FontIterator = struct {
 
     idx: c_uint,
 
+    // todo: we need to find out how this sorting even works
     pub fn init(fc_config: *fontconfig.FcConfig, _: Allocator, descriptor: collection.Descriptor) !FontIterator {
         const fc_pattern = try fontconfig.FcPatternCreate();
         errdefer fontconfig.FcPatternDestroy(fc_pattern);
@@ -31,17 +37,13 @@ pub const FontIterator = struct {
             fontconfig.FcPatternAddString(fc_pattern, "falimy", family);
         }
 
-        //if (descriptor.style) |style| {
-        //fontconfig.FcPatternAddString(fc_pattern, "style", style);
-        //}
+        if (descriptor.codepoint != 0) {
+            const charset = try fontconfig.FcCharSetCreate();
+            defer fontconfig.FcCharSetDestroy(charset);
 
-        //if (descriptor.codepoint != 0) {
-        //const charset = try fontconfig.FcCharSetCreate();
-        //defer fontconfig.FcCharSetDestroy(charset);
-
-        //fontconfig.FcCharSetAddChar(charset, descriptor.codepoint);
-        //fontconfig.FcPatternAddCharSet(fc_pattern, "charset", charset);
-        //}
+            fontconfig.FcCharSetAddChar(charset, descriptor.codepoint);
+            fontconfig.FcPatternAddCharSet(fc_pattern, "charset", charset);
+        }
 
         //if (descriptor.size != 0.0) {
         //fontconfig.FcPatternAddDouble(fc_pattern, "size", descriptor.size);
@@ -78,7 +80,7 @@ pub const FontIterator = struct {
         const fc_pattern = try fontconfig.FcFontRenderPrepare(self.fc_config, self.fc_pattern, self.fc_font_set.fonts[self.idx].?);
         errdefer fontconfig.FcPatternDestroy(fc_pattern);
 
-        //const fc_charset = (try fontconfig.FcPatternGetCharSet(fc_pattern, "charset", 0)).?;
+        const fc_charset = (try fontconfig.FcPatternGetCharSet(fc_pattern, "charset", 0)).?;
 
         //const family = (try fontconfig.FcPatternGetString(fc_pattern, "family", 0)).?;
         //const size = (try fontconfig.FcPatternGetDouble(fc_pattern, "size", 0)).?;
@@ -89,6 +91,7 @@ pub const FontIterator = struct {
 
         return .{
             .fc_pattern = fc_pattern,
+            .fc_charset  = fc_charset,
         };
     }
 };

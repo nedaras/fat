@@ -109,15 +109,12 @@ pub fn iterateFonts(allocator: Allocator, descriptor: collection.Descriptor) !co
 }
 
 test {
-    var it = try iterateFonts(std.testing.allocator, .{ .family = "Times New Roman" });
+    var it = try iterateFonts(std.testing.allocator, .{ .family = "Times New Roman", .codepoint = 'A' });
     defer it.deinit();
 
-    const deffered_face = (try it.next()).?;
-    defer deffered_face.deinit();
+    while (try it.next()) |deffered_face| {
+        defer deffered_face.deinit();
 
-    const face = try deffered_face.open(.{ .size = .{ .points = 12.0 } });
-    defer face.close();
-
-    const A = face.glyphIndex('A').?;
-    std.debug.print("{}\n", .{try face.glyphMetrics(A)});
+        std.debug.print("{}\n", .{deffered_face.hasCodepoint('A')});
+    }
 }
