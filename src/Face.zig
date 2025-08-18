@@ -9,6 +9,7 @@ const shared = @import("face/shared.zig");
 const Allocator = std.mem.Allocator;
 
 pub const GlyphRender = shared.GlyphRender;
+pub const GlyphMetrics = shared.GlyphMetrics;
 pub const GlyphBoundingBox = shared.GlyphBoundingBox;
 /// The desired size for loading a font.
 pub const DesiredSize = shared.DesiredSize;
@@ -63,7 +64,7 @@ pub inline fn renderGlyph(self: Face, allocator: Allocator, glyph_index: u32) !G
     return self.impl.renderGlyph(allocator, glyph_index);
 }
 
-pub inline fn glyphMetrics(self: Face, glyph_index: u32) !shared.GlyphMetrics {
+pub inline fn glyphMetrics(self: Face, glyph_index: u32) !GlyphMetrics {
     return self.impl.glyphMetrics(glyph_index);
 }
 
