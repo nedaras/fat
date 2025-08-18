@@ -8,6 +8,7 @@ const collection = @import("collection.zig");
 const Allocator = std.mem.Allocator;
 
 pub const Face = @import("Face.zig");
+pub const DefferedFace = collection.DefferedFace;
 pub const FontSlant = collection.FontSlant;
 pub const FontWeight = collection.FontWeight;
 
