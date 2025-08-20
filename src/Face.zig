@@ -56,6 +56,10 @@ pub inline fn glyphIndex(self: Face, codepoint: u21) ?u32 {
     return self.impl.glyphIndex(codepoint);
 }
 
+pub fn hasCodepoint(self: Face, codepoint: u21) bool {
+    return self.glyphIndex(codepoint) != null;
+}
+
 pub inline fn glyphBoundingBox(self: Face, glyph_index: u32) !GlyphBoundingBox {
     return self.impl.glyphBoundingBox(glyph_index);
 }

@@ -21,8 +21,8 @@ pub const GlyphBoundingBox = struct {
 };
 
 pub const GlyphMetrics = struct {
-    bearing_x: u32,
-    bearing_y: u32,
+    bearing_x: i32,
+    bearing_y: i32,
 
     advance_x: u32,
     advance_y: u32,
