@@ -3,8 +3,6 @@ const dwrite = @import("windows/dwrite.zig");
 const windows = std.os.windows;
 const assert = std.debug.assert;
 
-pub usingnamespace windows;
-
 const INT = windows.INT;
 const BOOL = windows.BOOL;
 const BYTE = windows.BYTE;

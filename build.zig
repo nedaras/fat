@@ -34,7 +34,7 @@ pub fn build(b: *std.Build) void {
 
     lib_mod.addImport("build_options", options_mod);
 
-    const lib = b.addStaticLibrary(.{
+    const lib = b.addLibrary(.{
         .name = "fat",
         .root_module = lib_mod,
     });
