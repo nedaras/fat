@@ -8,6 +8,7 @@ pub const BOOL = windows.BOOL;
 pub const BYTE = windows.BYTE;
 pub const GUID = windows.GUID;
 pub const RECT = windows.RECT;
+pub const FALSE = windows.FALSE;
 pub const WCHAR = windows.WCHAR;
 pub const FLOAT = windows.FLOAT;
 pub const ULONG = windows.ULONG;
