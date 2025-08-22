@@ -3,17 +3,16 @@ const dwrite = @import("windows/dwrite.zig");
 const windows = std.os.windows;
 const assert = std.debug.assert;
 
-const INT = windows.INT;
-const BOOL = windows.BOOL;
-const BYTE = windows.BYTE;
-const GUID = windows.GUID;
-const RECT = windows.RECT;
-const WCHAR = windows.WCHAR;
-const FLOAT = windows.FLOAT;
-const ULONG = windows.ULONG;
-const WINAPI = windows.WINAPI;
-const HRESULT = windows.HRESULT;
-const FILETIME = windows.FILETIME;
+pub const INT = windows.INT;
+pub const BOOL = windows.BOOL;
+pub const BYTE = windows.BYTE;
+pub const GUID = windows.GUID;
+pub const RECT = windows.RECT;
+pub const WCHAR = windows.WCHAR;
+pub const FLOAT = windows.FLOAT;
+pub const ULONG = windows.ULONG;
+pub const HRESULT = windows.HRESULT;
+pub const FILETIME = windows.FILETIME;
 
 pub const INT16 = i16;
 pub const INT32 = i32;
@@ -207,9 +206,9 @@ pub const IUnknown = extern struct {
 };
 
 const IUnknownVTable = extern struct {
-    QueryInterface: *const fn (self: *IUnknown, riid: REFIID, ppvObject: **anyopaque) callconv(WINAPI) HRESULT,
-    AddRef: *const fn (self: *IUnknown) callconv(WINAPI) ULONG,
-    Release: *const fn (self: *IUnknown) callconv(WINAPI) ULONG,
+    QueryInterface: *const fn (self: *IUnknown, riid: REFIID, ppvObject: **anyopaque) callconv(.winapi) HRESULT,
+    AddRef: *const fn (self: *IUnknown) callconv(.winapi) ULONG,
+    Release: *const fn (self: *IUnknown) callconv(.winapi) ULONG,
 };
 
 pub const IDWriteFactory = extern struct {
@@ -227,7 +226,7 @@ pub const IDWriteFactory = extern struct {
     };
 
     pub fn GetSystemFontCollection(self: *IDWriteFactory, checkForUpdates: bool) GetSystemFontCollectionError!*IDWriteFontCollection {
-        const FnType = fn (*IDWriteFactory, **IDWriteFontCollection, BOOL) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteFactory, **IDWriteFontCollection, BOOL) callconv(.winapi) HRESULT;
         const get_system_font_collection: *const FnType = @ptrCast(self.vtable[3]);
 
         var fontCollection: *IDWriteFontCollection = undefined;
@@ -253,7 +252,7 @@ pub const IDWriteFactory = extern struct {
         filePath: [:0]const u16,
         lastWriteTime: ?*const FILETIME,
     ) CreateFontFileReferenceError!*IDWriteFontFile {
-        const FnType = fn (*IDWriteFactory, [*:0]const u16, ?*const FILETIME, **IDWriteFontFile) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteFactory, [*:0]const u16, ?*const FILETIME, **IDWriteFontFile) callconv(.winapi) HRESULT;
         const create_font_file_refrence: *const FnType = @ptrCast(self.vtable[7]);
 
         var fontFile: *IDWriteFontFile = undefined;
@@ -281,7 +280,7 @@ pub const IDWriteFactory = extern struct {
         faceIndex: UINT32,
         fontFaceSimulationFlags: DWRITE_FONT_SIMULATIONS,
     ) CreateFontFaceError!*IDWriteFontFace {
-        const FnType = fn (*IDWriteFactory, DWRITE_FONT_FACE_TYPE, UINT32, [*]const *IDWriteFontFile, UINT32, DWRITE_FONT_SIMULATIONS, **IDWriteFontFace) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteFactory, DWRITE_FONT_FACE_TYPE, UINT32, [*]const *IDWriteFontFile, UINT32, DWRITE_FONT_SIMULATIONS, **IDWriteFontFace) callconv(.winapi) HRESULT;
         const create_font_face: *const FnType = @ptrCast(self.vtable[9]);
 
         var fontFace: *IDWriteFontFace = undefined;
@@ -310,7 +309,7 @@ pub const IDWriteFactory = extern struct {
         baselineOriginX: FLOAT,
         baselineOriginY: FLOAT,
     ) CreateGlyphRunAnalysisError!*IDWriteGlyphRunAnalysis {
-        const FnType = fn (*IDWriteFactory, *const DWRITE_GLYPH_RUN, FLOAT, ?*const DWRITE_MATRIX, DWRITE_RENDERING_MODE, DWRITE_MEASURING_MODE, FLOAT, FLOAT, **IDWriteGlyphRunAnalysis) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteFactory, *const DWRITE_GLYPH_RUN, FLOAT, ?*const DWRITE_MATRIX, DWRITE_RENDERING_MODE, DWRITE_MEASURING_MODE, FLOAT, FLOAT, **IDWriteGlyphRunAnalysis) callconv(.winapi) HRESULT;
 
         const create_glyph_run_analysis: *const FnType = @ptrCast(self.vtable[23]);
         var glyphRunAnalysis: *IDWriteGlyphRunAnalysis = undefined;
@@ -343,7 +342,7 @@ pub const IDWriteFontFile = extern struct {
         fontFaceType: ?*DWRITE_FONT_FACE_TYPE,
         numberOfFaces: *UINT32,
     ) AnalyzeError!void {
-        const FnType = fn (*IDWriteFontFile, *BOOL, *DWRITE_FONT_FILE_TYPE, ?*DWRITE_FONT_FACE_TYPE, *UINT32) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteFontFile, *BOOL, *DWRITE_FONT_FILE_TYPE, ?*DWRITE_FONT_FACE_TYPE, *UINT32) callconv(.winapi) HRESULT;
         const analyze: *const FnType = @ptrCast(self.vtable[5]);
 
         var isSupportedFontType: BOOL = undefined;
@@ -365,7 +364,7 @@ pub const IDWriteFontFace = extern struct {
     }
 
     pub fn GetMetrics(self: *IDWriteFontFace) DWRITE_FONT_METRICS {
-        const FnType = fn (*IDWriteFontFace, *DWRITE_FONT_METRICS) callconv(WINAPI) void;
+        const FnType = fn (*IDWriteFontFace, *DWRITE_FONT_METRICS) callconv(.winapi) void;
         const get_metrics: *const FnType = @ptrCast(self.vtable[8]);
 
         var fontFaceMetrics: DWRITE_FONT_METRICS = undefined;
@@ -386,7 +385,7 @@ pub const IDWriteFontFace = extern struct {
     ) GetDesignGlyphMetricsError!void {
         assert(glyphIndices.len == glyphMetrics.len);
 
-        const FnType = fn (*IDWriteFontFace, [*]const UINT16, UINT32, [*]DWRITE_GLYPH_METRICS, BOOL) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteFontFace, [*]const UINT16, UINT32, [*]DWRITE_GLYPH_METRICS, BOOL) callconv(.winapi) HRESULT;
         const get_design_glyph_metrics: *const FnType = @ptrCast(self.vtable[10]);
 
         const hr = get_design_glyph_metrics(self, glyphIndices.ptr, @intCast(glyphIndices.len), glyphMetrics.ptr, isSideways);
@@ -404,7 +403,7 @@ pub const IDWriteFontFace = extern struct {
     ) void {
         assert(codePoints.len == glyphIndices.len);
 
-        const FnType = fn (*IDWriteFontFace, [*]const UINT32, UINT32, [*]UINT16) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteFontFace, [*]const UINT32, UINT32, [*]UINT16) callconv(.winapi) HRESULT;
         const get_glyph_indicies: *const FnType = @ptrCast(self.vtable[11]);
 
         assert(get_glyph_indicies(self, codePoints.ptr, @intCast(codePoints.len), glyphIndices.ptr) == windows.S_OK);
@@ -423,7 +422,7 @@ pub const IDWriteGlyphRunAnalysis = extern struct {
     };
 
     pub fn GetAlphaTextureBounds(self: *IDWriteGlyphRunAnalysis, textureType: DWRITE_TEXTURE_TYPE) GetAlphaTextureBoundsError!RECT {
-        const FnType = fn (*IDWriteGlyphRunAnalysis, DWRITE_TEXTURE_TYPE, *RECT) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteGlyphRunAnalysis, DWRITE_TEXTURE_TYPE, *RECT) callconv(.winapi) HRESULT;
         const get_alpha_texture_bounds: *const FnType = @ptrCast(self.vtable[3]);
 
         var textureBounds: RECT = undefined;
@@ -440,7 +439,7 @@ pub const IDWriteGlyphRunAnalysis = extern struct {
     };
 
     pub fn CreateAlphaTexture(self: *IDWriteGlyphRunAnalysis, textureType: DWRITE_TEXTURE_TYPE, textureBounds: *const RECT, alphaValues: []u8) CreateAlphaTextureError!void {
-        const FnType = fn (*IDWriteGlyphRunAnalysis, DWRITE_TEXTURE_TYPE, *const RECT, [*]BYTE, UINT32) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteGlyphRunAnalysis, DWRITE_TEXTURE_TYPE, *const RECT, [*]BYTE, UINT32) callconv(.winapi) HRESULT;
         const create_alpha_texture: *const FnType = @ptrCast(self.vtable[4]);
 
         const hr = create_alpha_texture(self, textureType, textureBounds, alphaValues.ptr, @intCast(alphaValues.len));
@@ -459,7 +458,7 @@ pub const IDWriteFontCollection = extern struct {
     }
 
     pub inline fn GetFontFamilyCount(self: *IDWriteFontCollection) UINT32 {
-        const FnType = fn (*IDWriteFontCollection) callconv(WINAPI) UINT32;
+        const FnType = fn (*IDWriteFontCollection) callconv(.winapi) UINT32;
         const get_font_family_count: *const FnType = @ptrCast(self.vtable[3]);
 
         return get_font_family_count(self);
@@ -470,7 +469,7 @@ pub const IDWriteFontCollection = extern struct {
     };
 
     pub fn GetFontFamily(self: *IDWriteFontCollection, index: UINT32) GetFontFamilyError!*IDWriteFontFamily {
-        const FnType = fn (*IDWriteFontCollection, UINT32, **IDWriteFontFamily) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteFontCollection, UINT32, **IDWriteFontFamily) callconv(.winapi) HRESULT;
         const get_font_family: *const FnType = @ptrCast(self.vtable[4]);
 
         var fontFamily: *IDWriteFontFamily = undefined;
@@ -510,7 +509,7 @@ pub const IDWriteFontFamily = extern struct {
     };
 
     pub fn GetFamilyNames(self: *IDWriteFontFamily) GetFamilyNamesError!*IDWriteLocalizedStrings {
-        const FnType = fn (*IDWriteFontFamily, **IDWriteLocalizedStrings) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteFontFamily, **IDWriteLocalizedStrings) callconv(.winapi) HRESULT;
         const get_family_names: *const FnType = @ptrCast(self.vtable[6]);
 
         var names: *IDWriteLocalizedStrings = undefined;
@@ -557,12 +556,12 @@ pub const IDWriteFontList = extern struct {
 };
 
 const IDWriteFontListVTable = extern struct {
-    QueryInterface: *const fn (self: *IDWriteFontList, riid: REFIID, ppvObject: **anyopaque) callconv(WINAPI) HRESULT,
-    AddRef: *const fn (*IDWriteFontList) callconv(WINAPI) ULONG,
-    Release: *const fn (*IDWriteFontList) callconv(WINAPI) ULONG,
-    GetFontCollection: *const fn (*IDWriteFontList, fontCollection: **IDWriteFontCollection) callconv(WINAPI) HRESULT,
-    GetFontCount: *const fn (*IDWriteFontList) callconv(WINAPI) UINT32,
-    GetFont: *const fn (*IDWriteFontList, index: UINT32, font: **IDWriteFont) callconv(WINAPI) HRESULT,
+    QueryInterface: *const fn (self: *IDWriteFontList, riid: REFIID, ppvObject: **anyopaque) callconv(.winapi) HRESULT,
+    AddRef: *const fn (*IDWriteFontList) callconv(.winapi) ULONG,
+    Release: *const fn (*IDWriteFontList) callconv(.winapi) ULONG,
+    GetFontCollection: *const fn (*IDWriteFontList, fontCollection: **IDWriteFontCollection) callconv(.winapi) HRESULT,
+    GetFontCount: *const fn (*IDWriteFontList) callconv(.winapi) UINT32,
+    GetFont: *const fn (*IDWriteFontList, index: UINT32, font: **IDWriteFont) callconv(.winapi) HRESULT,
 };
 
 pub const IDWriteLocalizedStrings = extern struct {
@@ -651,15 +650,15 @@ pub const IDWriteLocalizedStrings = extern struct {
 
 // this is a bit cursed
 const IDWriteLocalizedStringsVTable = extern struct {
-    QueryInterface: *const fn (self: *IDWriteFontList, riid: REFIID, ppvObject: **anyopaque) callconv(WINAPI) HRESULT,
-    AddRef: *const fn (*IDWriteLocalizedStrings) callconv(WINAPI) ULONG,
-    Release: *const fn (*IDWriteLocalizedStrings) callconv(WINAPI) ULONG,
-    GetCount: *const fn (*IDWriteLocalizedStrings) callconv(WINAPI) UINT32,
-    FindLocaleName: *const fn (*IDWriteLocalizedStrings, localeName: [*:0]const WCHAR, index: *UINT32, exists: *BOOL) callconv(WINAPI) HRESULT,
-    GetLocaleNameLength: *const fn (*IDWriteLocalizedStrings, index: UINT32, length: *UINT32) callconv(WINAPI) HRESULT,
-    GetLocaleName: *const fn (*IDWriteLocalizedStrings, index: UINT32, localeName: [*]WCHAR, size: UINT32) callconv(WINAPI) HRESULT,
-    GetStringLength: *const fn (*IDWriteLocalizedStrings, index: UINT32, length: *UINT32) callconv(WINAPI) HRESULT,
-    GetString: *const fn (*IDWriteLocalizedStrings, index: UINT32, stringBuffer: [*]WCHAR, size: UINT32) callconv(WINAPI) HRESULT,
+    QueryInterface: *const fn (self: *IDWriteFontList, riid: REFIID, ppvObject: **anyopaque) callconv(.winapi) HRESULT,
+    AddRef: *const fn (*IDWriteLocalizedStrings) callconv(.winapi) ULONG,
+    Release: *const fn (*IDWriteLocalizedStrings) callconv(.winapi) ULONG,
+    GetCount: *const fn (*IDWriteLocalizedStrings) callconv(.winapi) UINT32,
+    FindLocaleName: *const fn (*IDWriteLocalizedStrings, localeName: [*:0]const WCHAR, index: *UINT32, exists: *BOOL) callconv(.winapi) HRESULT,
+    GetLocaleNameLength: *const fn (*IDWriteLocalizedStrings, index: UINT32, length: *UINT32) callconv(.winapi) HRESULT,
+    GetLocaleName: *const fn (*IDWriteLocalizedStrings, index: UINT32, localeName: [*]WCHAR, size: UINT32) callconv(.winapi) HRESULT,
+    GetStringLength: *const fn (*IDWriteLocalizedStrings, index: UINT32, length: *UINT32) callconv(.winapi) HRESULT,
+    GetString: *const fn (*IDWriteLocalizedStrings, index: UINT32, stringBuffer: [*]WCHAR, size: UINT32) callconv(.winapi) HRESULT,
 };
 
 pub const IDWriteFont = extern struct {
@@ -679,7 +678,7 @@ pub const IDWriteFont = extern struct {
     };
 
     pub fn GetFontFamily(self: *IDWriteFont) GetFontFamilyError!*IDWriteFontFamily {
-        const FnType = fn (*IDWriteFont, **IDWriteFontFamily) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteFont, **IDWriteFontFamily) callconv(.winapi) HRESULT;
         const get_font_family: *const FnType = @ptrCast(self.vtable[3]);
 
         var fontFamily: *IDWriteFontFamily = undefined;
@@ -694,21 +693,21 @@ pub const IDWriteFont = extern struct {
 
     // todo: idk maybe return enum with _ as idk why not
     pub inline fn GetWeight(self: *IDWriteFont) INT {
-        const FnType = fn (*IDWriteFont) callconv(WINAPI) INT;
+        const FnType = fn (*IDWriteFont) callconv(.winapi) INT;
         const get_weight: *const FnType = @ptrCast(self.vtable[4]);
 
         return get_weight(self);
     }
 
     pub inline fn GetStyle(self: *IDWriteFont) DWRITE_FONT_STYLE {
-        const FnType = fn (*IDWriteFont) callconv(WINAPI) DWRITE_FONT_STYLE;
+        const FnType = fn (*IDWriteFont) callconv(.winapi) DWRITE_FONT_STYLE;
         const get_style: *const FnType = @ptrCast(self.vtable[6]);
 
         return get_style(self);
     }
 
     pub fn HasCharacter(self: *IDWriteFont, unicodeValue: UINT32) bool {
-        const FnType = fn (*IDWriteFont, UINT32, *BOOL) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteFont, UINT32, *BOOL) callconv(.winapi) HRESULT;
         const has_character: *const FnType = @ptrCast(self.vtable[12]);
 
         var exists: BOOL = undefined;
@@ -723,7 +722,7 @@ pub const IDWriteFont = extern struct {
     };
 
     pub fn CreateFontFace(self: *IDWriteFont) CreateFontFaceError!*IDWriteFontFace {
-        const FnType = fn (*IDWriteFont, **IDWriteFontFace) callconv(WINAPI) HRESULT;
+        const FnType = fn (*IDWriteFont, **IDWriteFontFace) callconv(.winapi) HRESULT;
         const create_font_face: *const FnType = @ptrCast(self.vtable[13]);
 
         var fontFace: *IDWriteFontFace = undefined;
