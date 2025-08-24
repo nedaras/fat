@@ -49,8 +49,11 @@ pub const FontIterator = struct {
         //fontconfig.FcPatternAddDouble(fc_pattern, "size", descriptor.size);
         //}
 
+        fontconfig.FcPatternAddInteger(fc_pattern, "weight", 80);
+        fontconfig.FcPatternAddInteger(fc_pattern, "slant", 0);
+
         fontconfig.FcConfigSubstitute(fc_config, fc_pattern, .FcMatchPattern);
-        fontconfig.FcDefaultSubstitute(fc_pattern);
+        // fontconfig.FcDefaultSubstitute(fc_pattern);
 
         // todo: we need to sort it alphabetic ordeer as that how it is in windows
         // but do we? we can idk have some of like caveats
@@ -84,6 +87,8 @@ pub const FontIterator = struct {
 
         //const family = (try fontconfig.FcPatternGetString(fc_pattern, "family", 0)).?;
         //const size = (try fontconfig.FcPatternGetDouble(fc_pattern, "size", 0)).?;
+
+        // const weight = (try fontconfig.FcPatternGetInteger(fc_pattern, "weight", 0)).?;
 
         //_ = fc_charset;
         //_ = family;

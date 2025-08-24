@@ -122,6 +122,10 @@ pub inline fn FcPatternAddDouble(p: *FcPattern, object: [:0]const u8, d: f64) vo
     assert(abi.FcPatternAddDouble(p, object.ptr, d) == abi.FcTrue);
 }
 
+pub inline fn FcPatternAddInteger(p: *FcPattern, object: [:0]const u8, i: c_int) void {
+    assert(abi.FcPatternAddInteger(p, object.ptr, i) == abi.FcTrue);
+}
+
 pub inline fn FcCharSetCreate() Error!*FcCharSet {
     return abi.FcCharSetCreate() orelse error.OutOfMemory;
 }

@@ -110,12 +110,12 @@ pub fn iterateFonts(allocator: Allocator, descriptor: collection.Descriptor) !co
 }
 
 test {
-    var it = try iterateFonts(std.testing.allocator, .{ .family = "Times New Roman", .codepoint = 'A' });
+    var it = try iterateFonts(std.testing.allocator, .{ .codepoint = 'A' });
     defer it.deinit();
 
     while (try it.next()) |deffered_face| {
         defer deffered_face.deinit();
 
-        std.debug.print("{}\n", .{deffered_face.hasCodepoint('A')});
+        std.debug.print("{s}, {}\n", .{deffered_face.family, deffered_face.hasCodepoint('A')});
     }
 }

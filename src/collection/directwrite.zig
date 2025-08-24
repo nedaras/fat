@@ -40,6 +40,8 @@ pub const FontIterator = struct {
 
         codepoint: bool = false,
         family: bool = false,
+        weight: bool = false,
+        slant: bool = false,
     };
 
     pub fn init(dw_factory: *windows.IDWriteFactory, allocator: Allocator, descriptor: collection.Descriptor) !FontIterator {
@@ -200,6 +202,14 @@ pub const FontIterator = struct {
 
         if (descriptor.codepoint != 0) {
             self.codepoint = dw_font.HasCharacter(descriptor.codepoint);
+        }
+
+        if (dw_font.GetWeight() == @intFromEnum(windows.DWRITE_FONT_WEIGHT.DWRITE_FONT_WEIGHT_NORMAL)) {
+            self.weight = true;
+        }
+
+        if (dw_font.GetStyle() == .DWRITE_FONT_STYLE_NORMAL) {
+            self.slant = true;
         }
 
         return @bitCast(self);
