@@ -150,6 +150,8 @@ pub const FontIterator = struct {
         const wtf8_family_name = try unicode.wtf16LeToWtf8AllocZ(self.allocator, wtf16_family_name);
         errdefer self.allocator.free(wtf8_family_name);
 
+        std.debug.print("wght: {d}, slant: {}\n", .{dw_font.GetWeight(), dw_font.GetStyle()});
+
         return .{
             .dw_font = dw_font,
             .allocator = self.allocator,
