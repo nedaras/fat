@@ -39,9 +39,9 @@ pub const FontIterator = struct {
         const Backing = @typeInfo(@This()).@"struct".backing_integer.?;
 
         codepoint: bool = false,
-        family: bool = false,
         weight: bool = false,
         slant: bool = false,
+        family: bool = false,
     };
 
     pub fn init(dw_factory: *windows.IDWriteFactory, allocator: Allocator, descriptor: collection.Descriptor) !FontIterator {
@@ -149,8 +149,6 @@ pub const FontIterator = struct {
 
         const wtf8_family_name = try unicode.wtf16LeToWtf8AllocZ(self.allocator, wtf16_family_name);
         errdefer self.allocator.free(wtf8_family_name);
-
-        std.debug.print("wght: {d}, slant: {}\n", .{dw_font.GetWeight(), dw_font.GetStyle()});
 
         return .{
             .dw_font = dw_font,
