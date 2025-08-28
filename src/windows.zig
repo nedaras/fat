@@ -423,7 +423,7 @@ pub const IDWriteFontFace = extern struct {
         glyphIndices: []const UINT16,
         glyphMetrics: []DWRITE_GLYPH_METRICS,
         isSideways: BOOL,
-    ) !void {
+    ) GetGdiCompatibleGlyphMetricsError!void {
         assert(glyphIndices.len == glyphMetrics.len);
 
         const FnType = fn (*IDWriteFontFace, FLOAT, FLOAT, ?*const DWRITE_MATRIX, BOOL, [*]const UINT16, UINT32, [*]DWRITE_GLYPH_METRICS, BOOL) callconv(.winapi) HRESULT;
