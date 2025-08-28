@@ -196,16 +196,20 @@ pub const Face = struct {
 
     pub fn glyphMetrics(self: Face, glyph_index: u32) !shared.GlyphMetrics {
         const metrics = self.dw_face.GetMetrics();
+
         const scale = @as(f32, @floatFromInt(self.size.pixels())) / @as(f32, @floatFromInt(metrics.designUnitsPerEm));
+        const ascent = @as(f32, @floatFromInt(metrics.ascent));
 
         const indicies = [1]windows.UINT16{@intCast(glyph_index)};
         var glyph_metrics = [1]windows.DWRITE_GLYPH_METRICS{undefined};
 
         try self.dw_face.GetDesignGlyphMetrics(&indicies, &glyph_metrics, windows.FALSE);
 
+        self.dw_face.GetMetrics().ascent;
+
         return .{
             .bearing_x = @intFromFloat(@round(@as(f32, @floatFromInt(glyph_metrics[0].leftSideBearing)) * scale)),
-            .bearing_y = @intFromFloat(@round(@as(f32, @floatFromInt(glyph_metrics[0].topSideBearing)) * scale)),
+            .bearing_y = @intFromFloat(@round((ascent - @as(f32, @floatFromInt(glyph_metrics[0].verticalOriginY - glyph_metrics[0].topSideBearing))) * scale)),
             .advance_x = @intFromFloat(@round(@as(f32, @floatFromInt(glyph_metrics[0].advanceWidth)) * scale)),
             .advance_y = @intFromFloat(@round(@as(f32, @floatFromInt(glyph_metrics[0].advanceHeight)) * scale)),
         };
