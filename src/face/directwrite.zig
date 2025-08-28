@@ -152,6 +152,14 @@ pub const Face = struct {
         const width: u32 = @intCast(bounds.right - bounds.left);
         const height: u32 = @intCast(bounds.bottom - bounds.top);
 
+        if (width == 0 or height == 0) {
+            return .{
+                .width = 0,
+                .height = 0,
+                .bitmap = &.{},
+            };
+        }
+
         const bitmap_len = @as(usize, @intCast(width)) * @as(usize, @intCast(height));
         const bitmap = try allocator.alloc(u8, bitmap_len * 3);
         // cant do errdefer here as we can invoke double free

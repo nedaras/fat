@@ -47,10 +47,6 @@ pub inline fn close(self: Face) void {
     self.impl.close();
 }
 
-pub inline fn size(self: *Face) f32 {
-    return self.impl.size();
-}
-
 /// Resize the font in-place.
 pub inline fn setSize(self: *Face, desired_size: DesiredSize) !void {
     return self.impl.setSize(desired_size);
