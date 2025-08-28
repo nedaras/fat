@@ -54,10 +54,6 @@ pub const Face = struct {
         self.dw_face.Release();
     }
 
-    pub fn size(self: *Face) f32 {
-        return self.size.points;
-    }
-
     pub fn setSize(self: *Face, size: shared.DesiredSize) !void {
         self.size = size;
     }
