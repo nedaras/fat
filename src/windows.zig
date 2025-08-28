@@ -409,6 +409,33 @@ pub const IDWriteFontFace = extern struct {
 
         assert(get_glyph_indicies(self, codePoints.ptr, @intCast(codePoints.len), glyphIndices.ptr) == windows.S_OK);
     }
+
+    pub const GetGdiCompatibleGlyphMetricsError = error{
+        Unexpected,
+    };
+
+    pub fn GetGdiCompatibleGlyphMetrics(
+        self: *IDWriteFontFace,
+        emSize: FLOAT,
+        pixelsPerDip: FLOAT,
+        transform: ?*const DWRITE_MATRIX,
+        useGdiNatural: BOOL,
+        glyphIndices: []const UINT16,
+        glyphMetrics: []DWRITE_GLYPH_METRICS,
+        isSideways: BOOL,
+    ) !void {
+        assert(glyphIndices.len == glyphMetrics.len);
+
+        const FnType = fn (*IDWriteFontFace, FLOAT, FLOAT, *const DWRITE_MATRIX, BOOL, [*]const UINT16, UINT32, [*]DWRITE_GLYPH_METRICS, BOOL) callconv(.winapi) HRESULT;
+        const get_gdi_compatible_glyph_metrics: *const FnType = @ptrCast(self.vtable[17]);
+
+        const hr = get_gdi_compatible_glyph_metrics(self, emSize, pixelsPerDip, transform, useGdiNatural, glyphIndices.ptr, @intCast(glyphIndices.len), glyphMetrics.ptr, isSideways);
+        return switch (hr) {
+            windows.S_OK => {},
+            windows.E_POINTER => unreachable,
+            else => windows.unexpectedError(windows.HRESULT_CODE(hr)),
+        };
+    }
 };
 
 pub const IDWriteGlyphRunAnalysis = extern struct {
