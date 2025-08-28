@@ -205,8 +205,6 @@ pub const Face = struct {
 
         try self.dw_face.GetDesignGlyphMetrics(&indicies, &glyph_metrics, windows.FALSE);
 
-        self.dw_face.GetMetrics().ascent;
-
         return .{
             .bearing_x = @intFromFloat(@round(@as(f32, @floatFromInt(glyph_metrics[0].leftSideBearing)) * scale)),
             .bearing_y = @intFromFloat(@round((ascent - @as(f32, @floatFromInt(glyph_metrics[0].verticalOriginY - glyph_metrics[0].topSideBearing))) * scale)),
