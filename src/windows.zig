@@ -426,7 +426,7 @@ pub const IDWriteFontFace = extern struct {
     ) !void {
         assert(glyphIndices.len == glyphMetrics.len);
 
-        const FnType = fn (*IDWriteFontFace, FLOAT, FLOAT, *const DWRITE_MATRIX, BOOL, [*]const UINT16, UINT32, [*]DWRITE_GLYPH_METRICS, BOOL) callconv(.winapi) HRESULT;
+        const FnType = fn (*IDWriteFontFace, FLOAT, FLOAT, ?*const DWRITE_MATRIX, BOOL, [*]const UINT16, UINT32, [*]DWRITE_GLYPH_METRICS, BOOL) callconv(.winapi) HRESULT;
         const get_gdi_compatible_glyph_metrics: *const FnType = @ptrCast(self.vtable[17]);
 
         const hr = get_gdi_compatible_glyph_metrics(self, emSize, pixelsPerDip, transform, useGdiNatural, glyphIndices.ptr, @intCast(glyphIndices.len), glyphMetrics.ptr, isSideways);
