@@ -42,6 +42,11 @@ pub const DesiredSize = struct {
         // 1 point = 1/72 inch
         return @intFromFloat(@round((self.points * @as(f32, @floatFromInt(self.ydpi))) / 72));
     }
+
+    // Converts points to em size
+    pub fn ems(self: DesiredSize) f32 {
+        return self.points * @as(f32, @floatFromInt(self.ydpi)) / 72;
+    }
 };
 
 pub const OpenFaceOptions = struct {
